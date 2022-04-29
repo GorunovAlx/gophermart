@@ -43,64 +43,64 @@ func (o *Order) GetID() int {
 	return o.order.ID
 }
 
-func (u *Order) SetID(id int) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetID(id int) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.ID = id
+	o.order.ID = id
 }
 
 func (o *Order) GetUserID() int {
 	return o.order.UserID
 }
 
-func (u *Order) SetUserID(userID int) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetUserID(userID int) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.UserID = userID
+	o.order.UserID = userID
 }
 
 func (o *Order) GetNumber() string {
 	return o.order.Number
 }
 
-func (u *Order) SetNumber(number string) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetNumber(number string) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.Number = number
+	o.order.Number = number
 }
 
 func (o *Order) GetStatus() string {
 	return o.order.Status
 }
 
-func (u *Order) SetStatus(status string) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetStatus(status string) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.Status = status
+	o.order.Status = status
 }
 
 func (o *Order) GetAccrual() float32 {
 	return o.order.Accrual
 }
 
-func (u *Order) SetAccrual(accrual float32) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetAccrual(accrual float32) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.Accrual = accrual
+	o.order.Accrual = accrual
 }
 
 func (o *Order) GetUploadedAt() time.Time {
-	return o.order.Uploaded_at
+	return o.order.UploadedAt
 }
 
-func (u *Order) SetUploadedAt(time time.Time) {
-	if u.order == nil {
-		u.order = &gophermart.Order{}
+func (o *Order) SetUploadedAt(time time.Time) {
+	if o.order == nil {
+		o.order = &gophermart.Order{}
 	}
-	u.order.Uploaded_at = time
+	o.order.UploadedAt = time
 }

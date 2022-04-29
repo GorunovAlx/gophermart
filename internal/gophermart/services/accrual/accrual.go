@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"time"
 )
 
 var (
@@ -14,8 +12,6 @@ var (
 	ErrStatusNotOk        = errors.New("status isn't ok")
 	ErrDataProcessing     = errors.New("error occurred while processing the data")
 )
-
-var statuses = []string{"NEW", "PROCESSING", "INVALID", "PROCESSED"}
 
 type AccrualOrder struct {
 	OrderID int
@@ -34,13 +30,6 @@ func NewAccrualService(address string) *AccrualService {
 	}
 }
 
-func random() int {
-	rand.Seed(time.Now().UnixNano())
-	min := 0
-	max := 3
-	return rand.Intn(max-min+1) + min
-}
-
 func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
 	url := fmt.Sprintf("http://%v/api/orders/%v", as.Address, number)
 	res, err := http.Get(url)
@@ -56,8 +45,6 @@ func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
 	if err = json.NewDecoder(res.Body).Decode(&order); err != nil {
 		return AccrualOrder{}, ErrDataProcessing
 	}
-	r := random()
-	order.Status = statuses[r]
 
 	return order, nil
 }

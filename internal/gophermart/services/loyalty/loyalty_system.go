@@ -24,6 +24,13 @@ type LoyaltySystem struct {
 	AccrualService  *accrualService.AccrualService
 }
 
+const (
+	shortWait       = 20 * time.Second
+	longWait        = 120 * time.Second
+	processedStatus = "PROCESSED"
+	invalidStatus   = "INVALID"
+)
+
 // NewLoyaltySystem takes a variable amount of LoyaltySystemConfigurations and builds a LoyaltySystem
 func NewLoyaltySystem(cfgs ...LoyaltySystemConfiguration) (*LoyaltySystem, error) {
 	// Create the LoyaltySystem
@@ -73,7 +80,7 @@ func WithAccrualService(as *accrualService.AccrualService) LoyaltySystemConfigur
 
 func (ls *LoyaltySystem) UpdateOrder(job *order.OrderJob) error {
 	done := make(chan bool)
-	duration := 20 * time.Second
+	duration := shortWait
 	for {
 		acOrder, err := ls.AccrualService.GetAccrualOrder(job.Number)
 		if err != nil {
@@ -81,7 +88,7 @@ func (ls *LoyaltySystem) UpdateOrder(job *order.OrderJob) error {
 				return accrualService.ErrDataProcessing
 			}
 			if errors.Is(err, accrualService.ErrDataRetrievalError) || errors.Is(err, accrualService.ErrStatusNotOk) {
-				duration = 120 * time.Second
+				duration = longWait
 			}
 		}
 
@@ -92,7 +99,7 @@ func (ls *LoyaltySystem) UpdateOrder(job *order.OrderJob) error {
 				return order.ErrUpdateOrderNotExists
 			}
 		}
-		if acOrder.Status == "PROCESSED" || acOrder.Status == "INVALID" {
+		if acOrder.Status == processedStatus || acOrder.Status == invalidStatus {
 			if acOrder.Accrual > 0 {
 				err = ls.UserService.ChangeBalance(job.UserID, acOrder.Accrual)
 				if errors.Is(err, user.ErrUserNotFound) {

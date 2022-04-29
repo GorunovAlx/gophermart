@@ -13,9 +13,14 @@ import (
 	"github.com/urfave/negroni"
 )
 
+type contextKey int
+
 const (
-	registerPath = "/api/user/register"
-	loginPath    = "/api/user/login"
+	registerPath                    = "/api/user/register"
+	loginPath                       = "/api/user/login"
+	contextToken         contextKey = iota
+	cookieDuration                  = 5 * time.Minute
+	refreshTimeForCookie            = 60 * time.Second
 )
 
 func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
@@ -54,8 +59,8 @@ func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
 			return
 		}
 
-		if claims.ExpiresAt.Sub(time.Now()) < 60*time.Second {
-			expirationTime := time.Now().Add(5 * time.Minute)
+		if time.Until(claims.ExpiresAt.Time) < refreshTimeForCookie {
+			expirationTime := time.Now().Add(cookieDuration)
 			claims.ExpiresAt = jwt.NewNumericDate(expirationTime)
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 			tknStr, err = token.SignedString(jwtKey)
@@ -81,7 +86,7 @@ func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
 			})
 		}
 
-		newCtx := context.WithValue(r.Context(), "token", tknStr)
+		newCtx := context.WithValue(r.Context(), contextToken, tknStr)
 		next.ServeHTTP(w, r.WithContext(newCtx))
 	}
 }

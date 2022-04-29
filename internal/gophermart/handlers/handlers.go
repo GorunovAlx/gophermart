@@ -47,6 +47,12 @@ var (
 	statusNewValue = "NEW"
 )
 
+const (
+	contextLogin contextKey = iota
+	//cookieDuration                  = 5 * time.Minute
+	//refreshTimeForCookie            = 60 * time.Second
+)
+
 func NewHandler() *Handler {
 	us, err := userService.NewUserService(
 		userService.WithMemoryUserRepository(),
@@ -76,6 +82,9 @@ func NewHandler() *Handler {
 		loyaltyService.WithAccrualService(as),
 		loyaltyService.WithWithdrawService(ws),
 	)
+	if err != nil {
+		log.Printf("NewHandler, NewLoyaltySystem: %v", err.Error())
+	}
 
 	r := mux.NewRouter()
 
@@ -113,9 +122,7 @@ func (h *Handler) initializeRoutes() {
 }
 
 func (h *Handler) setToken(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	loginCtx := ctx.Value("login")
-	login := loginCtx.(string)
+	login := r.Context().Value(contextLogin).(string)
 	// Create the JWT claims, which includes the username and expiry time
 	claims := &Claims{
 		Username: login,
@@ -157,6 +164,10 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 8)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	err = h.LoyaltySystem.UserService.AddUser(u.Login, string(hashedPassword))
 	if err != nil {
 		if errors.Is(err, user.ErrFailedToAddUser) {
@@ -169,7 +180,7 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newCtx := context.WithValue(r.Context(), "login", u.Login)
+	newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
 	h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
 }
@@ -188,7 +199,7 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newCtx := context.WithValue(r.Context(), "login", u.Login)
+	newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
 	h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
 }
@@ -206,7 +217,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !luhn.Valid(orderNumber) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "incorrect order number format", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -288,10 +299,10 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	var orders []OrderResponse
 	for _, order := range res {
 		or := OrderResponse{
-			Number:      order.GetNumber(),
-			Status:      order.GetStatus(),
-			Accrual:     order.GetAccrual(),
-			Uploaded_at: order.GetUploadedAt().Format(time.RFC3339),
+			Number:     order.GetNumber(),
+			Status:     order.GetStatus(),
+			Accrual:    order.GetAccrual(),
+			UploadedAt: order.GetUploadedAt().Format(time.RFC3339),
 		}
 		orders = append(orders, or)
 	}
@@ -348,7 +359,7 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !luhn.Valid(orderNumber) {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "incorrect order number format", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -390,9 +401,9 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 	var withdrawals []WithdrawResponse
 	for _, withdraw := range res {
 		wr := WithdrawResponse{
-			Order:        withdraw.GetOrder(),
-			Sum:          withdraw.GetSum(),
-			Processed_at: withdraw.GetProcessedAt().Format(time.RFC3339),
+			Order:       withdraw.GetOrder(),
+			Sum:         withdraw.GetSum(),
+			ProcessedAt: withdraw.GetProcessedAt().Format(time.RFC3339),
 		}
 		withdrawals = append(withdrawals, wr)
 	}
@@ -409,7 +420,6 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getUserID(w http.ResponseWriter, r *http.Request) (int, error) {
-	ctx := r.Context()
-	token := ctx.Value("token")
-	return h.LoyaltySystem.UserService.GetUserIDByToken(token.(string))
+	token := r.Context().Value(contextToken).(string)
+	return h.LoyaltySystem.UserService.GetUserIDByToken(token)
 }
