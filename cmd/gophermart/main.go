@@ -15,9 +15,9 @@ func main() {
 	srv := &http.Server{
 		Handler:      router.Negroni,
 		Addr:         config.Cfg.RunAddress,
-		WriteTimeout: 1015 * time.Second,
-		ReadTimeout:  1015 * time.Second,
-		IdleTimeout:  time.Second * 60 * 5,
+		WriteTimeout: 1015000 * time.Second,
+		ReadTimeout:  1015000 * time.Second,
+		//IdleTimeout:  time.Second * 60 * 5,
 	}
 
 	log.Fatal(srv.ListenAndServe())
