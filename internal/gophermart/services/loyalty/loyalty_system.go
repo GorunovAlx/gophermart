@@ -118,6 +118,31 @@ func (ls *LoyaltySystem) UpdateOrder(job *order.OrderJob) error {
 	}
 }
 
+func (ls *LoyaltySystem) Update(number string, orderID int, userID int) error {
+	acOrder, err := ls.AccrualService.GetAccrualOrder(number)
+	if err != nil {
+		if errors.Is(err, accrualService.ErrDataProcessing) {
+			return accrualService.ErrDataProcessing
+		}
+	}
+
+	acOrder.OrderID = orderID
+	err = ls.OrderService.UpdateOrder(acOrder)
+	if errors.Is(err, order.ErrUpdateOrderNotExists) {
+		return order.ErrUpdateOrderNotExists
+	}
+	if acOrder.Status == processedStatus || acOrder.Status == invalidStatus {
+		if acOrder.Accrual > 0 {
+			err = ls.UserService.ChangeBalance(userID, acOrder.Accrual)
+			if errors.Is(err, user.ErrUserNotFound) {
+				return user.ErrUserNotFound
+			}
+		}
+	}
+
+	return nil
+}
+
 func (ls *LoyaltySystem) RegisterWithdraw(order string, sum float32, userID int) error {
 	u, err := ls.UserService.GetUser(userID)
 	if err != nil {

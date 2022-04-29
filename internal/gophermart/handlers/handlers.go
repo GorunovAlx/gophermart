@@ -18,7 +18,8 @@ import (
 	"github.com/theplant/luhn"
 	"github.com/urfave/negroni"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/sync/errgroup"
+
+	//"golang.org/x/sync/errgroup"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
@@ -244,35 +245,42 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobCh := make(chan *order.OrderJob)
-	g, _ := errgroup.WithContext(context.Background())
+	/*
+		jobCh := make(chan *order.OrderJob)
+		g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < 3; i++ {
-		g.Go(func() error {
-			for job := range jobCh {
-				if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
-					return err
+		for i := 0; i < 3; i++ {
+			g.Go(func() error {
+				for job := range jobCh {
+					if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
+						return err
+					}
 				}
-			}
-			return nil
-		})
-	}
-
-	job := &order.OrderJob{
-		Number: string(b),
-		ID:     oID,
-		UserID: userID,
-		Status: statusNewValue,
-	}
-	jobCh <- job
-
-	go func() {
-		if err := g.Wait(); err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+				return nil
+			})
 		}
-	}()
+
+		job := &order.OrderJob{
+			Number: string(b),
+			ID:     oID,
+			UserID: userID,
+			Status: statusNewValue,
+		}
+		jobCh <- job
+
+		go func() {
+			if err := g.Wait(); err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}()
+	*/
+
+	if err = h.LoyaltySystem.Update(string(b), oID, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 }
