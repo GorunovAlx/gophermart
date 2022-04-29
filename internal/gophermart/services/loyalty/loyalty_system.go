@@ -25,8 +25,8 @@ type LoyaltySystem struct {
 }
 
 const (
-	shortWait       = 1 * time.Second
-	longWait        = 3 * time.Second
+	shortWait       = 500 * time.Nanosecond
+	longWait        = 3 * 500 * time.Nanosecond
 	processedStatus = "PROCESSED"
 	invalidStatus   = "INVALID"
 )

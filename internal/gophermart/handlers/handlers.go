@@ -7,7 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"runtime"
+
+	//"runtime"
 	"sort"
 	"strconv"
 	"time"
@@ -246,7 +247,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 	jobCh := make(chan *order.OrderJob)
 	g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < 3; i++ {
 		g.Go(func() error {
 			for job := range jobCh {
 				if err = h.LoyaltySystem.UpdateOrder(job); err != nil {

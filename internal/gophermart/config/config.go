@@ -10,11 +10,11 @@ import (
 
 type Config struct {
 	// The server address
-	RunAddress string `env:"RUN_ADDRESS" envDefault:":8080"`
+	RunAddress string `env:"RUN_ADDRESS" envDefault:":8081"`
 	// Database url string like postgres://postgres:pass@localhost:5432/dbname?sslmode=disable
 	DatabaseURI string `env:"DATABASE_URI" envDefault:""`
 	//
-	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:""`
+	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:":8080"`
 }
 
 var Cfg Config
