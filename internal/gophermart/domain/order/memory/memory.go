@@ -70,6 +70,18 @@ func (mr *MemoryOrderRepository) GetOrders(userID int) ([]order.Order, error) {
 	return res, nil
 }
 
+func (mr *MemoryOrderRepository) GetOrdersNotProcessed(userID int) ([]order.Order, error) {
+	var res []order.Order
+	for _, order := range mr.orders {
+		status := order.GetStatus()
+		if status != "PROCESSED" && status != "INVALID" {
+			res = append(res, order)
+		}
+	}
+
+	return res, nil
+}
+
 func getNextID(mr *MemoryOrderRepository) int {
 	var idCount = 0
 	for range mr.orders {

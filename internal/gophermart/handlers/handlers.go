@@ -19,7 +19,7 @@ import (
 	"github.com/urfave/negroni"
 	"golang.org/x/crypto/bcrypt"
 
-	"golang.org/x/sync/errgroup"
+	//"golang.org/x/sync/errgroup"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
@@ -94,6 +94,7 @@ func NewHandler() *Handler {
 	n.Use(negroni.NewRecovery())
 	n.Use(negroni.NewLogger())
 	n.UseFunc(AuthMiddleware(us))
+	n.UseFunc(UpdateOrdersMiddleware(ls))
 	n.UseHandler(r)
 
 	h := &Handler{
@@ -223,13 +224,13 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.getUserID(w, r)
+	userID, err := getUserID(h.LoyaltySystem, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	oID, err := h.LoyaltySystem.OrderService.RegisterOrder(string(b), userID)
+	_, err = h.LoyaltySystem.OrderService.RegisterOrder(string(b), userID)
 	if err != nil {
 		if errors.Is(err, order.ErrOrderAlreadyRegisteredByUser) {
 			w.WriteHeader(http.StatusOK)
@@ -245,47 +246,48 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobCh := make(chan *order.OrderJob)
-	g, _ := errgroup.WithContext(context.Background())
-
-	for i := 0; i < 3; i++ {
-		g.Go(func() error {
-			for job := range jobCh {
-				if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-	}
-
-	job := &order.OrderJob{
-		Number: string(b),
-		ID:     oID,
-		UserID: userID,
-		Status: statusNewValue,
-	}
-	jobCh <- job
-
-	//go func() {
-	if err := g.Wait(); err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//}()
-
 	/*
-		if err = h.LoyaltySystem.Update(string(b), oID, userID); err != nil {
+		jobCh := make(chan *order.OrderJob)
+		g, _ := errgroup.WithContext(context.Background())
+
+		for i := 0; i < 3; i++ {
+			g.Go(func() error {
+				for job := range jobCh {
+					if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		}
+
+		job := &order.OrderJob{
+			Number: string(b),
+			ID:     oID,
+			UserID: userID,
+			Status: statusNewValue,
+		}
+		jobCh <- job
+
+		//go func() {
+		if err := g.Wait(); err != nil {
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		//}()
+
+
+			if err = h.LoyaltySystem.Update(string(b), oID, userID); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 	*/
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.getUserID(w, r)
+	userID, err := getUserID(h.LoyaltySystem, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -327,7 +329,7 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.getUserID(w, r)
+	userID, err := getUserID(h.LoyaltySystem, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -371,7 +373,7 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.getUserID(w, r)
+	userID, err := getUserID(h.LoyaltySystem, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -392,7 +394,7 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.getUserID(w, r)
+	userID, err := getUserID(h.LoyaltySystem, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -427,7 +429,7 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func (h *Handler) getUserID(w http.ResponseWriter, r *http.Request) (int, error) {
+func getUserID(ls *loyaltyService.LoyaltySystem, r *http.Request) (int, error) {
 	token := r.Context().Value(contextToken).(string)
-	return h.LoyaltySystem.UserService.GetUserIDByToken(token)
+	return ls.UserService.GetUserIDByToken(token)
 }

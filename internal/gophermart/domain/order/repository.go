@@ -15,6 +15,7 @@ var (
 type OrderRepository interface {
 	Add(Order) error
 	GetOrders(userID int) ([]Order, error)
+	GetOrdersNotProcessed(userID int) ([]Order, error)
 	GetOrderUserIDByNumber(orderNumber string) int
 	Update(order accrual.AccrualOrder) error
 }

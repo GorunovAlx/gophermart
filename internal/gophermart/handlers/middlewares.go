@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
+	loyaltyService "github.com/GorunovAlx/gophermart/internal/gophermart/services/loyalty"
 	userService "github.com/GorunovAlx/gophermart/internal/gophermart/services/user"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/urfave/negroni"
@@ -88,5 +89,43 @@ func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
 
 		newCtx := context.WithValue(r.Context(), contextToken, tknStr)
 		next.ServeHTTP(w, r.WithContext(newCtx))
+	}
+}
+
+func UpdateOrdersMiddleware(ls *loyaltyService.LoyaltySystem) negroni.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		if r.RequestURI == registerPath || r.RequestURI == loginPath {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		userID, err := getUserID(ls, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		orders, err := ls.OrderService.GetOrdersNotProcessed(userID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(orders) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		go func() {
+			for _, order := range orders {
+				err = ls.Update(order.GetNumber(), order.GetID(), userID)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		}()
+
+		next.ServeHTTP(w, r)
 	}
 }

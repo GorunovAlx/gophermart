@@ -83,3 +83,12 @@ func (os *OrderService) GetOrdersByUserID(userID int) ([]order.Order, error) {
 
 	return res, nil
 }
+
+func (os *OrderService) GetOrdersNotProcessed(userID int) ([]order.Order, error) {
+	res, err := os.orders.GetOrdersNotProcessed(userID)
+	if err != nil {
+		return []order.Order{}, err
+	}
+
+	return res, nil
+}
