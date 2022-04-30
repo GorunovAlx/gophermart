@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 
 	"time"
@@ -100,12 +101,14 @@ func UpdateOrdersMiddleware(ls *loyaltyService.LoyaltySystem) negroni.HandlerFun
 		}
 
 		userID, err := getUserID(ls, r)
+		log.Printf("UpdateOrdersMiddleware. user: %v", userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		orders, err := ls.OrderService.GetOrdersNotProcessed(userID)
+		log.Printf("UpdateOrdersMiddleware. len(orders): %v", len(orders))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -118,6 +121,7 @@ func UpdateOrdersMiddleware(ls *loyaltyService.LoyaltySystem) negroni.HandlerFun
 
 		go func() {
 			for _, order := range orders {
+				log.Printf("UpdateOrdersMiddleware. Update:order: %v", order)
 				err = ls.Update(order.GetNumber(), order.GetID(), userID)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)

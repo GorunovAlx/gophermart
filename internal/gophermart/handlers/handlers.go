@@ -288,6 +288,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(h.LoyaltySystem, r)
+	log.Printf("user: %v", userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
