@@ -13,7 +13,7 @@ var (
 )
 
 type OrderRepository interface {
-	Add(Order) error
+	Add(Order) (int, error)
 	GetOrders(userID int) ([]Order, error)
 	GetOrdersNotProcessed(userID int) ([]Order, error)
 	GetOrderUserIDByNumber(orderNumber string) int

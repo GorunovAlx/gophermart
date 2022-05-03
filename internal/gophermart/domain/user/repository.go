@@ -16,4 +16,6 @@ type UserRepository interface {
 	SetAuthToken(login, token string) error
 	GetUserByLogin(login string) User
 	Add(User) error
+	ChangeCurrentBalance(userID int, current float32) error
+	ChangeWithdrawnBalance(userID int, withdraw float32) error
 }

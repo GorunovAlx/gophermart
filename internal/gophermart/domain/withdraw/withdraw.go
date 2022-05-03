@@ -12,10 +12,9 @@ type Withdraw struct {
 
 func NewWithdraw(order string, sum float32, userID int) Withdraw {
 	w := &gophermart.Withdraw{
-		UserID:      userID,
-		Order:       order,
-		Sum:         sum,
-		ProcessedAt: time.Now(),
+		UserID: userID,
+		Order:  order,
+		Sum:    sum,
 	}
 
 	return Withdraw{
@@ -55,4 +54,8 @@ func (w *Withdraw) GetSum() float32 {
 
 func (w *Withdraw) GetProcessedAt() time.Time {
 	return w.withdraw.ProcessedAt
+}
+
+func (w *Withdraw) SetProcessedAt(t time.Time) {
+	w.withdraw.ProcessedAt = t
 }

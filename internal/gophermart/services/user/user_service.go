@@ -3,6 +3,8 @@ package services
 import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user/memory"
+	userDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/user/postgres"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // UserConfiguration is an alias for a function that will take in a pointer to an UserService and modify it
@@ -46,6 +48,14 @@ func WithMemoryUserRepository() UserConfiguration {
 	return WithUserRepository(ur)
 }
 
+func WithPostgresUserRepository(pool *pgxpool.Pool) UserConfiguration {
+	return func(us *UserService) error {
+		pur := userDB.NewPostgresRepository(pool)
+		us.users = pur
+		return nil
+	}
+}
+
 func (us *UserService) GetUser(userID int) (*user.User, error) {
 	u, err := us.users.Get(userID)
 	if err != nil {
@@ -85,22 +95,23 @@ func (us *UserService) GetUserIDByToken(token string) (int, error) {
 }
 
 func (us *UserService) ChangeBalance(userID int, accrual float32) error {
-	u, err := us.users.Get(userID)
+	err := us.users.ChangeCurrentBalance(userID, accrual)
 	if err != nil {
 		return err
 	}
 
-	u.ChangeCurrentBalance(accrual)
 	return nil
 }
 
 func (us *UserService) TakeOutSum(userID int, sum float32) error {
-	u, err := us.users.Get(userID)
+	err := us.users.ChangeCurrentBalance(userID, -sum)
+	if err != nil {
+		return err
+	}
+	err = us.users.ChangeWithdrawnBalance(userID, sum)
 	if err != nil {
 		return err
 	}
 
-	u.ChangeCurrentBalance(-sum)
-	u.ChangeWithdrawnBalance(sum)
 	return nil
 }

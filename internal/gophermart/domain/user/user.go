@@ -85,6 +85,20 @@ func (u *User) GetCurrentBalance() float32 {
 	return u.balance.Current
 }
 
+func (u *User) SetCurrentBalance(current float32) {
+	if u.person == nil {
+		u.person = &gophermart.Person{}
+	}
+	u.balance.Current = current
+}
+
+func (u *User) SetWithdrawnBalance(withdrawn float32) {
+	if u.person == nil {
+		u.person = &gophermart.Person{}
+	}
+	u.balance.Withdrawn = withdrawn
+}
+
 func (u *User) ChangeCurrentBalance(current float32) {
 	if u.person == nil {
 		u.person = &gophermart.Person{}

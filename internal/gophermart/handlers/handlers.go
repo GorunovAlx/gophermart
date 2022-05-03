@@ -15,16 +15,18 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/theplant/luhn"
 	"github.com/urfave/negroni"
 	"golang.org/x/crypto/bcrypt"
 
-	//"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/postgres"
 	accrualService "github.com/GorunovAlx/gophermart/internal/gophermart/services/accrual"
 	loyaltyService "github.com/GorunovAlx/gophermart/internal/gophermart/services/loyalty"
 	orderService "github.com/GorunovAlx/gophermart/internal/gophermart/services/order"
@@ -36,6 +38,14 @@ type Handler struct {
 	Negroni       *negroni.Negroni
 	Router        *mux.Router
 	LoyaltySystem *loyaltyService.LoyaltySystem
+}
+
+type ServiceShelf struct {
+	AS accrualService.AccrualService
+	US userService.UserService
+	OS orderService.OrderService
+	WS withdrawService.WithdrawService
+	LS loyaltyService.LoyaltySystem
 }
 
 type Claims struct {
@@ -55,25 +65,38 @@ const (
 	//refreshTimeForCookie            = 60 * time.Second
 )
 
-func NewHandler() *Handler {
+func NewServiceShelf() *Handler {
+	var pool *pgxpool.Pool
+	//var memoryUsing bool
+	var err error
+	if config.Cfg.DatabaseURI != "" {
+		pool, err = postgres.NewDBStorage()
+		if err != nil {
+			Logger.Error().Err(err).Msg("NewDBStorage()")
+		}
+	} else {
+		//memoryUsing = true
+	}
+
 	us, err := userService.NewUserService(
-		userService.WithMemoryUserRepository(),
+		userService.WithPostgresUserRepository(pool),
 	)
 	if err != nil {
-		log.Printf("NewHandler, NewUserService: %v", err.Error())
+		Logger.Error().Err(err).Msg("NewUserService()")
 	}
 
 	os, err := orderService.NewOrderService(
-		orderService.WithMemoryOrderRepository(),
+		orderService.WithPostgresOrderRepository(pool),
 	)
 	if err != nil {
-		log.Printf("NewHandler, NewOrderService: %v", err.Error())
+		Logger.Error().Err(err).Msg("NewOrderService()")
 	}
+
 	ws, err := withdrawService.NewWithdrawService(
-		withdrawService.WithMemoryWithdrawRepository(),
+		withdrawService.WithPostgresWithdrawRepository(pool),
 	)
 	if err != nil {
-		log.Printf("NewHandler, NewWithdrawService: %v", err.Error())
+		Logger.Error().Err(err).Msg("NewWithdrawService()")
 	}
 
 	as := accrualService.NewAccrualService(config.Cfg.AccrualAddress)
@@ -85,7 +108,7 @@ func NewHandler() *Handler {
 		loyaltyService.WithWithdrawService(ws),
 	)
 	if err != nil {
-		log.Printf("NewHandler, NewLoyaltySystem: %v", err.Error())
+		Logger.Error().Err(err).Msg("NewLoyaltySystem()")
 	}
 
 	r := mux.NewRouter()
@@ -94,7 +117,6 @@ func NewHandler() *Handler {
 	n.Use(negroni.NewRecovery())
 	n.Use(negroni.NewLogger())
 	n.UseFunc(AuthMiddleware(us))
-	n.UseFunc(UpdateOrdersMiddleware(ls))
 	n.UseHandler(r)
 
 	h := &Handler{
@@ -106,8 +128,74 @@ func NewHandler() *Handler {
 	return h
 }
 
+func NewHandler() *Handler {
+	/*
+		var us *userService.UserService
+		var pool *pgxpool.Pool
+		var err error
+		if config.Cfg.DatabaseURI != "" {
+			pool, err = postgres.NewDBStorage()
+			if err != nil {
+				log.Printf("NewHandler. NewDBStorage: %v", err.Error())
+			}
+		}
+		us, err = userService.NewUserService(
+			//userService.WithMemoryUserRepository(),
+			userService.WithPostgresUserRepository(pool),
+		)
+		if err != nil {
+			log.Printf("NewHandler, NewUserService: %v", err.Error())
+		}
+
+		os, err := orderService.NewOrderService(
+			orderService.WithMemoryOrderRepository(),
+		)
+		if err != nil {
+			log.Printf("NewHandler, NewOrderService: %v", err.Error())
+		}
+		ws, err := withdrawService.NewWithdrawService(
+			withdrawService.WithMemoryWithdrawRepository(),
+		)
+		if err != nil {
+			log.Printf("NewHandler, NewWithdrawService: %v", err.Error())
+		}
+
+		as := accrualService.NewAccrualService(config.Cfg.AccrualAddress)
+
+		ls, err := loyaltyService.NewLoyaltySystem(
+			loyaltyService.WithUserService(us),
+			loyaltyService.WithOrderService(os),
+			loyaltyService.WithAccrualService(as),
+			loyaltyService.WithWithdrawService(ws),
+		)
+		if err != nil {
+			log.Printf("NewHandler, NewLoyaltySystem: %v", err.Error())
+		}
+
+
+		r := mux.NewRouter()
+
+		n := negroni.New()
+		n.Use(negroni.NewRecovery())
+		n.Use(negroni.NewLogger())
+		n.UseFunc(AuthMiddleware(us))
+		//n.UseFunc(UpdateOrdersMiddleware(ls))
+		n.UseHandler(r)
+
+		h := &Handler{
+			Negroni:       n,
+			Router:        r,
+			LoyaltySystem: ls,
+		}
+
+		return h
+	*/
+
+	return nil
+}
+
 func Initialize() *Handler {
-	h := NewHandler()
+	h := NewServiceShelf()
 	h.initializeRoutes()
 
 	return h
@@ -230,7 +318,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.LoyaltySystem.OrderService.RegisterOrder(string(b), userID)
+	oID, err := h.LoyaltySystem.OrderService.RegisterOrder(string(b), userID)
 	if err != nil {
 		if errors.Is(err, order.ErrOrderAlreadyRegisteredByUser) {
 			w.WriteHeader(http.StatusOK)
@@ -246,43 +334,43 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
-		jobCh := make(chan *order.OrderJob)
-		g, _ := errgroup.WithContext(context.Background())
+	jobCh := make(chan *order.OrderJob)
+	g, _ := errgroup.WithContext(context.Background())
 
-		for i := 0; i < 3; i++ {
-			g.Go(func() error {
-				for job := range jobCh {
-					if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
-						return err
-					}
+	for i := 0; i < 3; i++ {
+		g.Go(func() error {
+			for job := range jobCh {
+				if err = h.LoyaltySystem.UpdateOrder(job); err != nil {
+					return err
 				}
-				return nil
-			})
-		}
+			}
+			return nil
+		})
+	}
 
-		job := &order.OrderJob{
-			Number: string(b),
-			ID:     oID,
-			UserID: userID,
-			Status: statusNewValue,
-		}
-		jobCh <- job
+	job := &order.OrderJob{
+		Number: string(b),
+		ID:     oID,
+		UserID: userID,
+		Status: statusNewValue,
+	}
+	jobCh <- job
 
-		//go func() {
+	go func() {
 		if err := g.Wait(); err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		//}()
+	}()
 
-
-			if err = h.LoyaltySystem.Update(string(b), oID, userID); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+	/*
+		if err = h.LoyaltySystem.Update(string(b), oID, userID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	*/
+
 	w.WriteHeader(http.StatusAccepted)
 }
 

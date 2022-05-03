@@ -3,6 +3,8 @@ package services
 import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw/memory"
+	withdrawDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw/postgres"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type WithdrawConfiguration func(ws *WithdrawService) error
@@ -34,9 +36,22 @@ func WithMemoryWithdrawRepository() WithdrawConfiguration {
 	return WithWithdrawRepository(wr)
 }
 
-func (ws *WithdrawService) Register(order string, sum float32, userID int) {
+func WithPostgresWithdrawRepository(pool *pgxpool.Pool) WithdrawConfiguration {
+	return func(ws *WithdrawService) error {
+		pwr := withdrawDB.NewPostgresRepository(pool)
+		ws.withdrawals = pwr
+		return nil
+	}
+}
+
+func (ws *WithdrawService) Register(order string, sum float32, userID int) (int, error) {
 	w := withdraw.NewWithdraw(order, sum, userID)
-	ws.withdrawals.Add(w)
+	id, err := ws.withdrawals.Add(w)
+	if err != nil {
+		return -1, err
+	}
+
+	return id, nil
 }
 
 func (ws *WithdrawService) GetWithdrawals(userID int) []withdraw.Withdraw {

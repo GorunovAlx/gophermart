@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/application/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/handlers"
 )
 
 func main() {
 	config.SetConfig()
+	handlers.CreateLogger()
 	router := handlers.Initialize()
 	srv := &http.Server{
 		Handler:      router.Negroni,

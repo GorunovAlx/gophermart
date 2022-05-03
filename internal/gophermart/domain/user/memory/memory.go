@@ -37,6 +37,28 @@ func (mr *MemoryUserRepository) SetAuthToken(login, token string) error {
 	return user.ErrUserNotFound
 }
 
+func (mr *MemoryUserRepository) ChangeCurrentBalance(userID int, current float32) error {
+	for _, user := range mr.users {
+		if user.GetID() == userID {
+			user.ChangeCurrentBalance(current)
+			return nil
+		}
+	}
+
+	return user.ErrUserNotFound
+}
+
+func (mr *MemoryUserRepository) ChangeWithdrawnBalance(userID int, withdraw float32) error {
+	for _, user := range mr.users {
+		if user.GetID() == userID {
+			user.ChangeWithdrawnBalance(withdraw)
+			return nil
+		}
+	}
+
+	return user.ErrUserNotFound
+}
+
 func (mr *MemoryUserRepository) GetUserByLogin(login string) user.User {
 	for _, user := range mr.users {
 		if user.GetLogin() == login {

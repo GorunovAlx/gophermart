@@ -19,7 +19,7 @@ func New() *MemoryOrderRepository {
 	}
 }
 
-func (mr *MemoryOrderRepository) Add(o order.Order) error {
+func (mr *MemoryOrderRepository) Add(o order.Order) (int, error) {
 	if mr.orders == nil {
 		mr.Lock()
 		mr.orders = make(map[int]order.Order)
@@ -32,7 +32,8 @@ func (mr *MemoryOrderRepository) Add(o order.Order) error {
 	mr.Lock()
 	mr.orders[orderID] = o
 	mr.Unlock()
-	return nil
+
+	return orderID, nil
 }
 
 func (mr *MemoryOrderRepository) Update(accrualOrder accrual.AccrualOrder) error {

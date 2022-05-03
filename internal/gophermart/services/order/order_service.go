@@ -3,7 +3,9 @@ package services
 import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order/memory"
+	orderDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/order/postgres"
 	accrual "github.com/GorunovAlx/gophermart/internal/gophermart/services/accrual"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // OrderConfiguration is an alias for a function that will take in a pointer to an OrderService and modify it
@@ -47,6 +49,14 @@ func WithMemoryOrderRepository() OrderConfiguration {
 	return WithOrderRepository(ur)
 }
 
+func WithPostgresOrderRepository(pool *pgxpool.Pool) OrderConfiguration {
+	return func(os *OrderService) error {
+		por := orderDB.NewPostgresRepository(pool)
+		os.orders = por
+		return nil
+	}
+}
+
 func (os *OrderService) RegisterOrder(orderNumber string, userID int) (int, error) {
 	uID := os.orders.GetOrderUserIDByNumber(orderNumber)
 	if uID != -1 {
@@ -59,12 +69,12 @@ func (os *OrderService) RegisterOrder(orderNumber string, userID int) (int, erro
 	}
 
 	o := order.NewOrder(orderNumber, userID)
-	err := os.orders.Add(o)
+	id, err := os.orders.Add(o)
 	if err != nil {
 		return -1, err
 	}
 
-	return o.GetID(), nil
+	return id, nil
 }
 
 func (os *OrderService) UpdateOrder(order accrual.AccrualOrder) error {

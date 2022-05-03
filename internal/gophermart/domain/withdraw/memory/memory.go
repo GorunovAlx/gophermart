@@ -2,6 +2,7 @@ package memory
 
 import (
 	"sync"
+	"time"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
 )
@@ -17,7 +18,7 @@ func New() *MemoryWithdrawRepository {
 	}
 }
 
-func (mr *MemoryWithdrawRepository) Add(w withdraw.Withdraw) {
+func (mr *MemoryWithdrawRepository) Add(w withdraw.Withdraw) (int, error) {
 	if mr.withdrawals == nil {
 		mr.Lock()
 		mr.withdrawals = make(map[int]withdraw.Withdraw)
@@ -25,10 +26,13 @@ func (mr *MemoryWithdrawRepository) Add(w withdraw.Withdraw) {
 	}
 	withdrawID := getNextID(mr)
 	w.SetID(withdrawID)
+	w.SetProcessedAt(time.Now())
 
 	mr.Lock()
 	mr.withdrawals[withdrawID] = w
 	mr.Unlock()
+
+	return withdrawID, nil
 }
 
 func (mr *MemoryWithdrawRepository) GetWithdrawals(userID int) []withdraw.Withdraw {

@@ -1,6 +1,6 @@
 package withdraw
 
 type WithdrawRepository interface {
-	Add(Withdraw)
+	Add(w Withdraw) (int, error)
 	GetWithdrawals(userID int) []Withdraw
 }
