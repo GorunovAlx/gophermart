@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/application/config"
 )
 
 var Logger zerolog.Logger

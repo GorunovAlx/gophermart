@@ -2,7 +2,7 @@ module github.com/GorunovAlx/gophermart
 
 go 1.18
 
-replace github.com/GorunovAlx/gophermart/internal/gophermart/entity => ../internal/gophermart/entity
+replace github.com/GorunovAlx/gophermart/internal/gophermart/application/config => ../internal/gophermart/application/config
 
 require (
 	github.com/caarlos0/env/v6 v6.9.1
