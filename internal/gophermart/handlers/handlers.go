@@ -22,7 +22,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/application/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
