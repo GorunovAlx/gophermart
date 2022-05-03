@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/application/config"
 
 	//"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -95,9 +95,8 @@ func NewDBStorage() (*pgxpool.Pool, error) {
 	}
 	defer conn.Release()
 
-	/*
-		sqlCreateStmt := `
-		CREATE TABLE "users" (
+	sqlCreateStmt := `
+		CREATE TABLE if not exists "users" (
 			"id" BIGSERIAL PRIMARY KEY,
 			"login" varchar UNIQUE,
 			"password" varchar NOT NULL,
@@ -106,7 +105,7 @@ func NewDBStorage() (*pgxpool.Pool, error) {
 			"withdrawn" numeric(7,2)
 		  );
 
-		  CREATE TABLE "orders" (
+		  CREATE TABLE if not exists "orders" (
 			"id" BIGSERIAL PRIMARY KEY,
 			"user_id" int NOT NULL,
 			"number" varchar NOT NULL,
@@ -115,7 +114,7 @@ func NewDBStorage() (*pgxpool.Pool, error) {
 			"uploaded_at" timestamp DEFAULT (now())
 		  );
 
-		  CREATE TABLE "withdrawals" (
+		  CREATE TABLE if not exists "withdrawals" (
 			"id" BIGSERIAL PRIMARY KEY,
 			"user_id" int NOT NULL,
 			"order" varchar NOT NULL,
@@ -123,18 +122,18 @@ func NewDBStorage() (*pgxpool.Pool, error) {
 			"processed_at" timestamp DEFAULT (now())
 		  );
 
-		  CREATE INDEX "order_status" ON "orders" ("user_id", "number", "status");
+		  CREATE INDEX if not exists "order_status" ON "orders" ("user_id", "number", "status");
 
-		  ALTER TABLE "orders" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+		  ALTER TABLE if not exists "orders" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
-		  ALTER TABLE "withdrawals" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+		  ALTER TABLE if not exists "withdrawals" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
 		`
-	*/
-	//_, err = conn.Exec(context.Background(), sqlCreateStmt)
-	//if err != nil {
-	//	return nil, err
-	//}
+
+	_, err = conn.Exec(context.Background(), sqlCreateStmt)
+	if err != nil {
+		return nil, err
+	}
 
 	return pgPool, nil
 }
