@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"github.com/GorunovAlx/gophermart"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type PostgresWithdrawRepository struct {
@@ -64,7 +64,7 @@ func (db *PostgresWithdrawRepository) GetWithdrawals(userID int) []withdraw.With
 	defer rows.Close()
 
 	for rows.Next() {
-		var w gophermart.Withdraw
+		var w entity.Withdraw
 		err = rows.Scan(
 			&w.ID,
 			&w.UserID,

@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"github.com/GorunovAlx/gophermart"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type PostgresUserRepository struct {
@@ -27,8 +27,8 @@ func (db *PostgresUserRepository) Get(id int) (*user.User, error) {
 	}
 	defer conn.Release()
 
-	var person gophermart.Person
-	var balance gophermart.Balance
+	var person entity.Person
+	var balance entity.Balance
 	err = conn.QueryRow(
 		context.Background(),
 		"select id, login, password, authtoken, current, withdrawn from users where id=$1",
@@ -155,8 +155,8 @@ func (db *PostgresUserRepository) GetUserByLogin(login string) user.User {
 	}
 	defer conn.Release()
 
-	var person gophermart.Person
-	var balance gophermart.Balance
+	var person entity.Person
+	var balance entity.Balance
 	err = conn.QueryRow(
 		context.Background(),
 		"select id, login, password, authtoken, current, withdrawn from users where login=$1",

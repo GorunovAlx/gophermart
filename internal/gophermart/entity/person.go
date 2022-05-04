@@ -1,4 +1,4 @@
-package gophermart
+package entity
 
 type Person struct {
 	ID        int

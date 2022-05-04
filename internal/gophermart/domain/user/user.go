@@ -3,7 +3,7 @@ package user
 import (
 	"errors"
 
-	"github.com/GorunovAlx/gophermart"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 var (
@@ -12,8 +12,8 @@ var (
 )
 
 type User struct {
-	person  *gophermart.Person
-	balance *gophermart.Balance
+	person  *entity.Person
+	balance *entity.Balance
 }
 
 func NewUser(login, pass string) (User, error) {
@@ -21,12 +21,12 @@ func NewUser(login, pass string) (User, error) {
 		return User{}, ErrInvalidPerson
 	}
 
-	person := &gophermart.Person{
+	person := &entity.Person{
 		Login:    login,
 		Password: pass,
 	}
 
-	b := &gophermart.Balance{
+	b := &entity.Balance{
 		Current:   0,
 		Withdrawn: 0,
 	}
@@ -43,7 +43,7 @@ func (u *User) GetID() int {
 
 func (u *User) SetID(id int) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.person.ID = id
 }
@@ -54,7 +54,7 @@ func (u *User) GetLogin() string {
 
 func (u *User) SetLogin(login string) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.person.Login = login
 }
@@ -65,7 +65,7 @@ func (u *User) GetPassword() string {
 
 func (u *User) SetPassword(pass string) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.person.Password = pass
 }
@@ -76,7 +76,7 @@ func (u *User) GetToken() string {
 
 func (u *User) SetAuthToken(token string) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.person.AuthToken = token
 }
@@ -87,21 +87,21 @@ func (u *User) GetCurrentBalance() float32 {
 
 func (u *User) SetCurrentBalance(current float32) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.balance.Current = current
 }
 
 func (u *User) SetWithdrawnBalance(withdrawn float32) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.balance.Withdrawn = withdrawn
 }
 
 func (u *User) ChangeCurrentBalance(current float32) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.balance.Current += current
 }
@@ -112,7 +112,7 @@ func (u *User) GetWithdrawnBalance() float32 {
 
 func (u *User) ChangeWithdrawnBalance(withdrawn float32) {
 	if u.person == nil {
-		u.person = &gophermart.Person{}
+		u.person = &entity.Person{}
 	}
 	u.balance.Withdrawn += withdrawn
 }

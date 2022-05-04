@@ -1,4 +1,4 @@
-package handlers
+package v1
 
 type OrderResponse struct {
 	Number     string  `json:"number,omitempty"`

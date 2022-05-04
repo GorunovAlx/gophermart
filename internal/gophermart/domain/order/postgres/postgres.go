@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"github.com/GorunovAlx/gophermart"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	accrual "github.com/GorunovAlx/gophermart/internal/gophermart/services/accrual"
 )
 
@@ -66,7 +66,7 @@ func (db *PostgresOrderRepository) GetOrders(userID int) ([]order.Order, error) 
 	defer rows.Close()
 
 	for rows.Next() {
-		var o gophermart.Order
+		var o entity.Order
 		err = rows.Scan(
 			&o.ID,
 			&o.UserID,
@@ -114,7 +114,7 @@ func (db *PostgresOrderRepository) GetOrdersNotProcessed(userID int) ([]order.Or
 	defer rows.Close()
 
 	for rows.Next() {
-		var o gophermart.Order
+		var o entity.Order
 		err = rows.Scan(
 			&o.ID,
 			&o.UserID,

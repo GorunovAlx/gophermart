@@ -2,24 +2,18 @@ package main
 
 import (
 	"log"
-	"net/http"
-	"time"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/application/config"
-	"github.com/GorunovAlx/gophermart/internal/gophermart/handlers"
+	"github.com/GorunovAlx/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/app"
 )
 
 func main() {
-	config.SetConfig()
-	handlers.CreateLogger()
-	router := handlers.Initialize()
-	srv := &http.Server{
-		Handler:      router.Negroni,
-		Addr:         config.Cfg.RunAddress,
-		WriteTimeout: 1015000 * time.Second,
-		ReadTimeout:  1015000 * time.Second,
-		//IdleTimeout:  time.Second * 60 * 5,
+	// Configuration
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Config error: %s", err)
 	}
 
-	log.Fatal(srv.ListenAndServe())
+	// Run
+	app.Run(cfg)
 }

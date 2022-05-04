@@ -3,11 +3,11 @@ package order
 import (
 	"time"
 
-	"github.com/GorunovAlx/gophermart"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type Order struct {
-	order *gophermart.Order
+	order *entity.Order
 }
 
 type OrderJob struct {
@@ -20,7 +20,7 @@ type OrderJob struct {
 type ByUploadedAt []Order
 
 func NewOrder(number string, userID int) Order {
-	o := &gophermart.Order{
+	o := &entity.Order{
 		Number: number,
 		UserID: userID,
 		Status: "NEW",
@@ -45,7 +45,7 @@ func (o *Order) GetID() int {
 
 func (o *Order) SetID(id int) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.ID = id
 }
@@ -56,7 +56,7 @@ func (o *Order) GetUserID() int {
 
 func (o *Order) SetUserID(userID int) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.UserID = userID
 }
@@ -67,7 +67,7 @@ func (o *Order) GetNumber() string {
 
 func (o *Order) SetNumber(number string) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.Number = number
 }
@@ -78,7 +78,7 @@ func (o *Order) GetStatus() string {
 
 func (o *Order) SetStatus(status string) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.Status = status
 }
@@ -89,7 +89,7 @@ func (o *Order) GetAccrual() float32 {
 
 func (o *Order) SetAccrual(accrual float32) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.Accrual = accrual
 }
@@ -100,7 +100,7 @@ func (o *Order) GetUploadedAt() time.Time {
 
 func (o *Order) SetUploadedAt(time time.Time) {
 	if o.order == nil {
-		o.order = &gophermart.Order{}
+		o.order = &entity.Order{}
 	}
 	o.order.UploadedAt = time
 }

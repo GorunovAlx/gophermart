@@ -3,15 +3,15 @@ package withdraw
 import (
 	"time"
 
-	"github.com/GorunovAlx/gophermart"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type Withdraw struct {
-	withdraw *gophermart.Withdraw
+	withdraw *entity.Withdraw
 }
 
 func NewWithdraw(order string, sum float32, userID int) Withdraw {
-	w := &gophermart.Withdraw{
+	w := &entity.Withdraw{
 		UserID: userID,
 		Order:  order,
 		Sum:    sum,
