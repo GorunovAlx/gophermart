@@ -153,6 +153,9 @@ func (ls *LoyaltySystem) RegisterWithdraw(order string, sum float32, userID int)
 	}
 
 	_, err = ls.WithdrawService.Register(order, sum, userID)
+	if err != nil {
+		return err
+	}
 	err = ls.UserService.TakeOutSum(userID, sum)
 	if err != nil {
 		return err

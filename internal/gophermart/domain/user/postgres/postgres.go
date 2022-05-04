@@ -209,7 +209,7 @@ func (db *PostgresUserRepository) Add(u user.User) error {
 		return err
 	}
 	if commandTag.RowsAffected() != 1 {
-		return errors.New("Unsuccess add")
+		return errors.New("unsuccess add")
 	}
 
 	return nil
