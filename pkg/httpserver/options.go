@@ -1,7 +1,7 @@
 package httpserver
 
 import (
-	"net"
+	//"net"
 	"time"
 )
 
@@ -11,8 +11,8 @@ type Option func(*Server)
 // Port -.
 func Port(port string) Option {
 	return func(s *Server) {
-		s.server.Addr = net.JoinHostPort("", port)
-		//s.server.Addr = port
+		//s.server.Addr = net.JoinHostPort("", port)
+		s.server.Addr = port
 	}
 }
 
