@@ -26,6 +26,11 @@ func NewHandler(s *ServiceShelf) *Handler {
 		Services: s,
 	}
 
+	return h
+}
+
+func Initialize(s *ServiceShelf) *Handler {
+	h := NewHandler(s)
 	h.initializeRoutes()
 
 	return h

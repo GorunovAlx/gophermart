@@ -16,26 +16,28 @@ import (
 func Run(cfg *config.Config) {
 	l := logger.New(zerolog.Level(cfg.ZerologLevel).String())
 
+	l.Debug("cfg: runaddress: %v, database: %v, accrual: %v", cfg.RunAddress, cfg.DatabaseURI, cfg.AccrualAddress)
 	// Repository
 	pg, err := postgres.New(cfg)
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
 	}
+	l.Debug("postgres: %v", pg.Pool)
 	defer pg.Close()
 
 	serviceShelf, err := v1.NewServiceShelf(cfg, pg)
 	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
+		l.Fatal(fmt.Errorf("app - Run - serviceShelf.New: %w", err))
 	}
 
-	router := v1.NewHandler(serviceShelf)
+	router := v1.Initialize(serviceShelf)
 
 	s := &http.Server{
-		Addr:           cfg.RunAddress,
-		Handler:        router.Negroni,
-		ReadTimeout:    100 * time.Second,
-		WriteTimeout:   100 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		Addr:         cfg.RunAddress,
+		Handler:      router.Negroni,
+		WriteTimeout: 1015 * time.Second,
+		ReadTimeout:  1015 * time.Second,
+		IdleTimeout:  time.Second * 60 * 5,
 	}
 	l.Fatal(s.ListenAndServe())
 }
