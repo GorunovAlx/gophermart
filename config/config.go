@@ -34,10 +34,10 @@ func NewConfig() (*Config, error) {
 			flag.StringVar(&cfg.RunAddress, "a", cfg.RunAddress, "HTTP server launch address")
 		}
 		if flag.Lookup("d") == nil {
-			flag.StringVar(&cfg.DatabaseURI, "f", cfg.DatabaseURI, "Database url string")
+			flag.StringVar(&cfg.DatabaseURI, "d", cfg.DatabaseURI, "Database url string")
 		}
 		if flag.Lookup("r") == nil {
-			flag.StringVar(&cfg.AccrualAddress, "d", cfg.AccrualAddress, "Addres of accrual service")
+			flag.StringVar(&cfg.AccrualAddress, "r", cfg.AccrualAddress, "Addres of accrual service")
 		}
 		flag.Parse()
 	}
