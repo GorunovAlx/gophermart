@@ -9,11 +9,11 @@ import (
 
 type Config struct {
 	// The server address
-	RunAddress string `env:"RUN_ADDRESS" envDefault:":8081"`
+	RunAddress string `env:"RUN_ADDRESS"`
 	// Database url string like postgres://postgres:pass@localhost:5432/dbname?sslmode=disable
 	DatabaseURI string `env:"DATABASE_URI"`
 	// The accrual address
-	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:":8080"`
+	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	// logging level for zerolog
 	ZerologLevel int8 `env:"ZERO_LOG_LEVEL" envDefault:"0"`
 	// logging level for pgx driver db
