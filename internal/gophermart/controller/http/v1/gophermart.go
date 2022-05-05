@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
+
+	//"log"
 	"net/http"
 
-	"runtime"
+	//"runtime"
 	"sort"
 	"strconv"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"github.com/theplant/luhn"
 	"golang.org/x/crypto/bcrypt"
 
-	"golang.org/x/sync/errgroup"
+	//"golang.org/x/sync/errgroup"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
@@ -103,7 +104,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oID, err := h.Services.Orders.RegisterOrder(string(b), userID)
+	_, err = h.Services.Orders.RegisterOrder(string(b), userID)
 	if err != nil {
 		if errors.Is(err, order.ErrOrderAlreadyRegisteredByUser) {
 			w.WriteHeader(http.StatusOK)
@@ -119,35 +120,37 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobCh := make(chan *order.OrderJob)
-	g, _ := errgroup.WithContext(context.Background())
+	/*
+		jobCh := make(chan *order.OrderJob)
+		g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < runtime.NumCPU(); i++ {
-		g.Go(func() error {
-			for job := range jobCh {
-				if err = h.Services.Loyalty.UpdateOrder(job); err != nil {
-					return err
+		for i := 0; i < runtime.NumCPU(); i++ {
+			g.Go(func() error {
+				for job := range jobCh {
+					if err = h.Services.Loyalty.UpdateOrder(job); err != nil {
+						return err
+					}
 				}
-			}
-			return nil
-		})
-	}
-
-	job := &order.OrderJob{
-		Number: string(b),
-		ID:     oID,
-		UserID: userID,
-		Status: statusNewValue,
-	}
-	jobCh <- job
-
-	go func() {
-		if err := g.Wait(); err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+				return nil
+			})
 		}
-	}()
+
+		job := &order.OrderJob{
+			Number: string(b),
+			ID:     oID,
+			UserID: userID,
+			Status: statusNewValue,
+		}
+		jobCh <- job
+
+		go func() {
+			if err := g.Wait(); err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}()
+	*/
 
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -296,6 +299,6 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUserID(ls *loyaltyService.LoyaltySystem, r *http.Request) (int, error) {
-	token := r.Context().Value(_contextToken).(string)
+	token := r.Context().Value(contextToken).(string)
 	return ls.UserService.GetUserIDByToken(token)
 }

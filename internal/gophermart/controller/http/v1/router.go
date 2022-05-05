@@ -18,6 +18,7 @@ func NewHandler(s *ServiceShelf) *Handler {
 	n.Use(negroni.NewRecovery())
 	n.Use(negroni.NewLogger())
 	n.UseFunc(AuthMiddleware(s.Users))
+	n.UseFunc(UpdateOrdersMiddleware(s.Loyalty))
 	n.UseHandler(r)
 
 	h := &Handler{
