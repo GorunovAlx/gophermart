@@ -21,15 +21,11 @@ type ServiceShelf struct {
 }
 
 func NewServiceShelf(cfg *config.Config, pg *postgres.Postgres) (*ServiceShelf, error) {
-	/*
-		if pg == nil {
-			return NewShelfWithMemoryStorage(cfg)
-		}
+	if pg == nil {
+		return NewShelfWithMemoryStorage(cfg)
+	}
 
-		return NewShelfWithPostgresStorage(cfg, pg)
-	*/
-
-	return NewShelfWithMemoryStorage(cfg)
+	return NewShelfWithPostgresStorage(cfg, pg)
 }
 
 func NewShelfWithPostgresStorage(cfg *config.Config, pg *postgres.Postgres) (*ServiceShelf, error) {

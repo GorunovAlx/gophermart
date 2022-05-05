@@ -2,8 +2,6 @@ package app
 
 import (
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/GorunovAlx/gophermart/config"
 	"github.com/GorunovAlx/gophermart/pkg/logger"
@@ -32,12 +30,16 @@ func Run(cfg *config.Config) {
 
 	router := v1.Initialize(serviceShelf)
 
-	s := &http.Server{
-		Addr:         cfg.RunAddress,
-		Handler:      router.Negroni,
-		WriteTimeout: 1015 * time.Second,
-		ReadTimeout:  1015 * time.Second,
-		IdleTimeout:  time.Second * 60 * 5,
-	}
-	l.Fatal(s.ListenAndServe())
+	router.Negroni.Run(cfg.RunAddress)
+
+	/*
+		s := &http.Server{
+			Addr:         cfg.RunAddress,
+			Handler:      router.Negroni,
+			WriteTimeout: 1015 * time.Second,
+			ReadTimeout:  1015 * time.Second,
+			IdleTimeout:  time.Second * 60 * 5,
+		}
+		l.Fatal(s.ListenAndServe())
+	*/
 }
