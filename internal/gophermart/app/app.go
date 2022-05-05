@@ -23,8 +23,8 @@ func Run(cfg *config.Config) {
 	l.Debug("postgres: %v", pg.Pool)
 	defer pg.Close()
 
-	//serviceShelf, err := v1.NewServiceShelf(cfg, pg)
-	serviceShelf, err := v1.NewServiceShelf(cfg, nil)
+	serviceShelf, err := v1.NewServiceShelf(cfg, pg)
+	//serviceShelf, err := v1.NewServiceShelf(cfg, nil)
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - serviceShelf.New: %w", err))
 	}
