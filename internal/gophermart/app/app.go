@@ -2,12 +2,10 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+	"net/http"
+	"time"
 
 	"github.com/GorunovAlx/gophermart/config"
-	"github.com/GorunovAlx/gophermart/pkg/httpserver"
 	"github.com/GorunovAlx/gophermart/pkg/logger"
 	"github.com/GorunovAlx/gophermart/pkg/postgres"
 	"github.com/rs/zerolog"
@@ -19,7 +17,7 @@ func Run(cfg *config.Config) {
 	l := logger.New(zerolog.Level(cfg.ZerologLevel).String())
 
 	// Repository
-	pg, err := postgres.New(cfg, postgres.MaxPoolSize(2))
+	pg, err := postgres.New(cfg)
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
 	}
@@ -31,24 +29,13 @@ func Run(cfg *config.Config) {
 	}
 
 	router := v1.NewHandler(serviceShelf)
-	router.InitializeRoutes()
 
-	httpServer := httpserver.New(router.Negroni, httpserver.Port(cfg.RunAddress))
-
-	// Waiting signal
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case s := <-interrupt:
-		l.Info("app - Run - signal: " + s.String())
-	case err = <-httpServer.Notify():
-		l.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
+	s := &http.Server{
+		Addr:           cfg.RunAddress,
+		Handler:        router.Negroni,
+		ReadTimeout:    100 * time.Second,
+		WriteTimeout:   100 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
-
-	// Shutdown
-	err = httpServer.Shutdown()
-	if err != nil {
-		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
-	}
+	l.Fatal(s.ListenAndServe())
 }

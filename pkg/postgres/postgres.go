@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	_defaultMaxPoolSize  = 1
-	_defaultConnAttempts = 10
-	_defaultConnTimeout  = time.Second
+	defaultMaxPoolSize  = 1
+	defaultConnAttempts = 10
+	defaultConnTimeout  = time.Second
 )
 
-// Postgres -.
+// Postgres
 type Postgres struct {
 	maxPoolSize  int
 	connAttempts int
@@ -30,22 +30,17 @@ type Postgres struct {
 // os.Stderr by default.
 type PGXStdLogger struct{}
 
-// New -.
-func New(cfg *config.Config, opts ...Option) (*Postgres, error) {
+// New
+func New(cfg *config.Config) (*Postgres, error) {
 	pgxLogLevel, err := LogLevelFromCfg(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
 	}
 
 	pg := &Postgres{
-		maxPoolSize:  _defaultMaxPoolSize,
-		connAttempts: _defaultConnAttempts,
-		connTimeout:  _defaultConnTimeout,
-	}
-
-	// Custom options
-	for _, opt := range opts {
-		opt(pg)
+		maxPoolSize:  defaultMaxPoolSize,
+		connAttempts: defaultConnAttempts,
+		connTimeout:  defaultConnTimeout,
 	}
 
 	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURI)
@@ -101,7 +96,7 @@ func LogLevelFromCfg(cfg *config.Config) (pgx.LogLevel, error) {
 	return pgx.LogLevelInfo, nil
 }
 
-// Close -.
+// Close
 func (p *Postgres) Close() {
 	if p.Pool != nil {
 		p.Pool.Close()

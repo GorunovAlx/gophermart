@@ -26,10 +26,12 @@ func NewHandler(s *ServiceShelf) *Handler {
 		Services: s,
 	}
 
+	h.initializeRoutes()
+
 	return h
 }
 
-func (h *Handler) InitializeRoutes() {
+func (h *Handler) initializeRoutes() {
 	s := h.Router.PathPrefix("/api/user").Subrouter()
 	s.HandleFunc("/register", h.registerUserHandler).Methods("POST")
 	s.HandleFunc("/login", h.loginUserHandler).Methods("POST")
