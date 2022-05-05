@@ -109,7 +109,7 @@ type Storage struct {
 }
 
 func InitStorage(cfg *config.Config) *Storage {
-	makeMigration(cfg.DatabaseURI)
+	//makeMigration(cfg.DatabaseURI)
 	conn, err := pgx.Connect(context.Background(), cfg.DatabaseURI)
 	if err != nil {
 		panic(err)

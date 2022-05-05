@@ -70,6 +70,11 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userValue := h.Services.Users.GetUserByLogin(u.Login)
+	if (user.User{}) == userValue {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("wrong credentials"))
+		return
+	}
 	if err := bcrypt.CompareHashAndPassword([]byte(userValue.GetPassword()), []byte(u.Password)); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("wrong credentials"))
