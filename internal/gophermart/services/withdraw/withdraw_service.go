@@ -4,7 +4,7 @@ import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw/memory"
 	withdrawDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw/postgres"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 )
 
 type WithdrawConfiguration func(ws *WithdrawService) error
@@ -36,7 +36,7 @@ func WithMemoryWithdrawRepository() WithdrawConfiguration {
 	return WithWithdrawRepository(wr)
 }
 
-func WithPostgresWithdrawRepository(pool *pgxpool.Pool) WithdrawConfiguration {
+func WithPostgresWithdrawRepository(pool *pgx.Conn) WithdrawConfiguration {
 	return func(ws *WithdrawService) error {
 		pwr := withdrawDB.NewPostgresRepository(pool)
 		ws.withdrawals = pwr

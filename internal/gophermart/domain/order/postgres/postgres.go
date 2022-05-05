@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
@@ -12,28 +12,22 @@ import (
 )
 
 type PostgresOrderRepository struct {
-	*pgxpool.Pool
+	*pgx.Conn
 }
 
-func NewPostgresRepository(db *pgxpool.Pool) *PostgresOrderRepository {
+func NewPostgresRepository(db *pgx.Conn) *PostgresOrderRepository {
 	return &PostgresOrderRepository{
 		db,
 	}
 }
 
 func (db *PostgresOrderRepository) Add(o order.Order) (int, error) {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return -1, err
-	}
-	defer conn.Release()
-
 	insertStatement := `
 	INSERT INTO orders (user_id, number, status, accrual, uploaded_at)
 	VALUES ($1, $2, $3, $4, $5) RETURNING id;`
 
 	var orderID int
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		insertStatement,
 		o.GetUserID(),
@@ -50,16 +44,10 @@ func (db *PostgresOrderRepository) Add(o order.Order) (int, error) {
 }
 
 func (db *PostgresOrderRepository) GetOrders(userID int) ([]order.Order, error) {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return []order.Order{}, err
-	}
-	defer conn.Release()
-
 	var result []order.Order
 
 	selectStatement := "select id, user_id, number, status, accrual, uploaded_at from orders where user_id=$1"
-	rows, err := conn.Query(context.Background(), selectStatement, userID)
+	rows, err := db.Conn.Query(context.Background(), selectStatement, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -95,19 +83,13 @@ func (db *PostgresOrderRepository) GetOrders(userID int) ([]order.Order, error) 
 }
 
 func (db *PostgresOrderRepository) GetOrdersNotProcessed(userID int) ([]order.Order, error) {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return []order.Order{}, err
-	}
-	defer conn.Release()
-
 	var result []order.Order
 
 	selectStatement := `
 	select id, user_id, number, status, accrual, uploaded_at 
 	from orders where user_id=$1 and status not in ('INVALID', 'PROCESSED')`
 
-	rows, err := conn.Query(context.Background(), selectStatement, userID)
+	rows, err := db.Conn.Query(context.Background(), selectStatement, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,14 +125,8 @@ func (db *PostgresOrderRepository) GetOrdersNotProcessed(userID int) ([]order.Or
 }
 
 func (db *PostgresOrderRepository) GetOrderUserIDByNumber(orderNumber string) int {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return -1
-	}
-	defer conn.Release()
-
 	var userID int
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		"select user_id from orders where number=$1",
 		orderNumber,
@@ -163,16 +139,10 @@ func (db *PostgresOrderRepository) GetOrderUserIDByNumber(orderNumber string) in
 }
 
 func (db *PostgresOrderRepository) Update(order accrual.AccrualOrder) error {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	sqlStmt := `
 	update orders set status = $1, accrual = $2 where id = $3;`
 
-	_, err = conn.Exec(
+	_, err := db.Conn.Exec(
 		context.Background(),
 		sqlStmt,
 		order.Status,

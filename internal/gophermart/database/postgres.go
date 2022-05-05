@@ -1,16 +1,16 @@
-package postgres
+package database
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"time"
 
 	"github.com/GorunovAlx/gophermart/config"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+/*
 const (
 	defaultMaxPoolSize  = 1
 	defaultConnAttempts = 10
@@ -100,5 +100,35 @@ func LogLevelFromCfg(cfg *config.Config) (pgx.LogLevel, error) {
 func (p *Postgres) Close() {
 	if p.Pool != nil {
 		p.Pool.Close()
+	}
+}
+*/
+
+type Storage struct {
+	PGpool *pgx.Conn
+}
+
+func InitStorage(cfg *config.Config) *Storage {
+	makeMigration(cfg.DatabaseURI)
+	conn, err := pgx.Connect(context.Background(), cfg.DatabaseURI)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Storage{
+		PGpool: conn,
+	}
+}
+
+func makeMigration(uri string) {
+	m, err := migrate.New(
+		"file://migrations",
+		uri)
+	if err != nil {
+		panic(err)
+	}
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		panic(err)
 	}
 }

@@ -4,32 +4,26 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type PostgresUserRepository struct {
-	*pgxpool.Pool
+	*pgx.Conn
 }
 
-func NewPostgresRepository(db *pgxpool.Pool) *PostgresUserRepository {
+func NewPostgresRepository(db *pgx.Conn) *PostgresUserRepository {
 	return &PostgresUserRepository{
 		db,
 	}
 }
 
 func (db *PostgresUserRepository) Get(id int) (*user.User, error) {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return &user.User{}, err
-	}
-	defer conn.Release()
-
 	var person entity.Person
 	var balance entity.Balance
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		"select id, login, password, authtoken, current, withdrawn from users where id=$1",
 		id,
@@ -57,16 +51,10 @@ func (db *PostgresUserRepository) Get(id int) (*user.User, error) {
 }
 
 func (db *PostgresUserRepository) ChangeCurrentBalance(userID int, accrual float32) error {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	sqlStmt := `
 	update users set current = current + $1 where id = $2;`
 
-	_, err = conn.Exec(
+	_, err := db.Conn.Exec(
 		context.Background(),
 		sqlStmt,
 		accrual,
@@ -81,16 +69,10 @@ func (db *PostgresUserRepository) ChangeCurrentBalance(userID int, accrual float
 }
 
 func (db *PostgresUserRepository) ChangeWithdrawnBalance(userID int, withdraw float32) error {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	sqlStmt := `
 	update users set withdrawn = withdrawn + $1 where id = $2;`
 
-	_, err = conn.Exec(
+	_, err := db.Conn.Exec(
 		context.Background(),
 		sqlStmt,
 		withdraw,
@@ -105,14 +87,8 @@ func (db *PostgresUserRepository) ChangeWithdrawnBalance(userID int, withdraw fl
 }
 
 func (db *PostgresUserRepository) GetIDByToken(token string) int {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return -1
-	}
-	defer conn.Release()
-
 	var userID int
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		"select id from users where authtoken=$1",
 		token,
@@ -125,16 +101,10 @@ func (db *PostgresUserRepository) GetIDByToken(token string) int {
 }
 
 func (db *PostgresUserRepository) SetAuthToken(login, token string) error {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	sqlStmt := `
 	update users set authtoken = $1 where login = $2;`
 
-	_, err = conn.Exec(
+	_, err := db.Conn.Exec(
 		context.Background(),
 		sqlStmt,
 		token,
@@ -149,15 +119,9 @@ func (db *PostgresUserRepository) SetAuthToken(login, token string) error {
 }
 
 func (db *PostgresUserRepository) GetUserByLogin(login string) user.User {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return user.User{}
-	}
-	defer conn.Release()
-
 	var person entity.Person
 	var balance entity.Balance
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		"select id, login, password, authtoken, current, withdrawn from users where login=$1",
 		login,
@@ -185,17 +149,11 @@ func (db *PostgresUserRepository) GetUserByLogin(login string) user.User {
 }
 
 func (db *PostgresUserRepository) Add(u user.User) error {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
 	insertStatement := `
 	INSERT INTO users (login, password, authtoken, current, withdrawn)
 	VALUES ($1, $2, $3, $4, $5);`
 
-	commandTag, err := conn.Exec(
+	commandTag, err := db.Conn.Exec(
 		context.Background(),
 		insertStatement,
 		u.GetLogin(),

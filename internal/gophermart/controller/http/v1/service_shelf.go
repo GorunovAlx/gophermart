@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/GorunovAlx/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/database"
 	accrualService "github.com/GorunovAlx/gophermart/internal/gophermart/services/accrual"
 	loyaltyService "github.com/GorunovAlx/gophermart/internal/gophermart/services/loyalty"
 	orderService "github.com/GorunovAlx/gophermart/internal/gophermart/services/order"
 	userService "github.com/GorunovAlx/gophermart/internal/gophermart/services/user"
 	withdrawService "github.com/GorunovAlx/gophermart/internal/gophermart/services/withdraw"
-	"github.com/GorunovAlx/gophermart/pkg/postgres"
 )
 
 type ServiceShelf struct {
@@ -20,31 +20,31 @@ type ServiceShelf struct {
 	Loyalty     *loyaltyService.LoyaltySystem
 }
 
-func NewServiceShelf(cfg *config.Config, pg *postgres.Postgres) (*ServiceShelf, error) {
-	if pg == nil {
+func NewServiceShelf(cfg *config.Config, st *database.Storage) (*ServiceShelf, error) {
+	if st == nil {
 		return NewShelfWithMemoryStorage(cfg)
 	}
 
-	return NewShelfWithPostgresStorage(cfg, pg)
+	return NewShelfWithPostgresStorage(cfg, st)
 }
 
-func NewShelfWithPostgresStorage(cfg *config.Config, pg *postgres.Postgres) (*ServiceShelf, error) {
+func NewShelfWithPostgresStorage(cfg *config.Config, st *database.Storage) (*ServiceShelf, error) {
 	us, err := userService.NewUserService(
-		userService.WithPostgresUserRepository(pg.Pool),
+		userService.WithPostgresUserRepository(st.PGpool),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewShelfWithPostgresStorage, NewUserService: %v", err.Error())
 	}
 
 	os, err := orderService.NewOrderService(
-		orderService.WithPostgresOrderRepository(pg.Pool),
+		orderService.WithPostgresOrderRepository(st.PGpool),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewShelfWithPostgresStorage, NewOrderService: %v", err.Error())
 	}
 
 	ws, err := withdrawService.NewWithdrawService(
-		withdrawService.WithPostgresWithdrawRepository(pg.Pool),
+		withdrawService.WithPostgresWithdrawRepository(st.PGpool),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewShelfWithPostgresStorage, NewWithdrawService: %v", err.Error())

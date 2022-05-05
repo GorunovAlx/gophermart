@@ -5,7 +5,7 @@ import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order/memory"
 	orderDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/order/postgres"
 	accrual "github.com/GorunovAlx/gophermart/internal/gophermart/services/accrual"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 )
 
 // OrderConfiguration is an alias for a function that will take in a pointer to an OrderService and modify it
@@ -49,7 +49,7 @@ func WithMemoryOrderRepository() OrderConfiguration {
 	return WithOrderRepository(ur)
 }
 
-func WithPostgresOrderRepository(pool *pgxpool.Pool) OrderConfiguration {
+func WithPostgresOrderRepository(pool *pgx.Conn) OrderConfiguration {
 	return func(os *OrderService) error {
 		por := orderDB.NewPostgresRepository(pool)
 		os.orders = por

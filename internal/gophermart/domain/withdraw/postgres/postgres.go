@@ -4,35 +4,29 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 type PostgresWithdrawRepository struct {
-	*pgxpool.Pool
+	*pgx.Conn
 }
 
-func NewPostgresRepository(db *pgxpool.Pool) *PostgresWithdrawRepository {
+func NewPostgresRepository(db *pgx.Conn) *PostgresWithdrawRepository {
 	return &PostgresWithdrawRepository{
 		db,
 	}
 }
 
 func (db *PostgresWithdrawRepository) Add(w withdraw.Withdraw) (int, error) {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return -1, err
-	}
-	defer conn.Release()
-
 	insertStatement := `
 	INSERT INTO withdrawals (user_id, "order", sum, processed_at)
 	VALUES ($1, $2, $3, $4) RETURNING id;`
 
 	var withdrawID int
-	err = conn.QueryRow(
+	err := db.Conn.QueryRow(
 		context.Background(),
 		insertStatement,
 		w.GetUserID(),
@@ -48,16 +42,10 @@ func (db *PostgresWithdrawRepository) Add(w withdraw.Withdraw) (int, error) {
 }
 
 func (db *PostgresWithdrawRepository) GetWithdrawals(userID int) []withdraw.Withdraw {
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		return []withdraw.Withdraw{}
-	}
-	defer conn.Release()
-
 	var result []withdraw.Withdraw
 
 	selectStatement := `select id, user_id, "order", sum, processed_at from withdrawals where user_id=$1`
-	rows, err := conn.Query(context.Background(), selectStatement, userID)
+	rows, err := db.Conn.Query(context.Background(), selectStatement, userID)
 	if err != nil {
 		return []withdraw.Withdraw{}
 	}

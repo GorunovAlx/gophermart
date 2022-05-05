@@ -4,7 +4,7 @@ import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user/memory"
 	userDB "github.com/GorunovAlx/gophermart/internal/gophermart/domain/user/postgres"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 )
 
 // UserConfiguration is an alias for a function that will take in a pointer to an UserService and modify it
@@ -48,7 +48,7 @@ func WithMemoryUserRepository() UserConfiguration {
 	return WithUserRepository(ur)
 }
 
-func WithPostgresUserRepository(pool *pgxpool.Pool) UserConfiguration {
+func WithPostgresUserRepository(pool *pgx.Conn) UserConfiguration {
 	return func(us *UserService) error {
 		pur := userDB.NewPostgresRepository(pool)
 		us.users = pur
