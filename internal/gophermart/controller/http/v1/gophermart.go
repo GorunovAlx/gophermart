@@ -390,6 +390,10 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUserID(r *http.Request) int {
-	token := r.Context().Value(contextUserID).(string)
+	contextToken := r.Context().Value(contextUserID)
+	if contextToken == nil {
+		return -1
+	}
+	token := contextToken.(string)
 	return h.Users.GetIDByToken(token)
 }
