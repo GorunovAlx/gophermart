@@ -34,8 +34,7 @@ func NewAccrualService(address string, o entity.OrderRepository) *AccrualService
 }
 
 func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
-	url := fmt.Sprintf("http://%v/api/orders/%v", as.Address, number)
-	res, err := http.Get(url)
+	res, err := http.Get(fmt.Sprintf("%s/api/orders/%s", as.Address, number))
 	if err != nil {
 		return AccrualOrder{}, ErrDataRetrievalError
 	}

@@ -107,7 +107,7 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 			for _, order := range orders {
 				err := h.Accruals.UpdateAccrualOrder(order.Number)
 				if err != nil {
-					log.Printf(err.Error())
+					log.Println(err.Error())
 				}
 			}
 		}()
