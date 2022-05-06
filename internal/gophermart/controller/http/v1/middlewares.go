@@ -64,6 +64,9 @@ func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 
 		next.ServeHTTP(w, r)
