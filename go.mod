@@ -6,7 +6,6 @@ replace github.com/GorunovAlx/gophermart/internal/gophermart/application/config 
 
 require (
 	github.com/caarlos0/env/v6 v6.9.1
-	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/gorilla/mux v1.8.0
 	github.com/jackc/pgx/v4 v4.16.0

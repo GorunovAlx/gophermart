@@ -8,34 +8,26 @@ import (
 	"time"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/urfave/negroni"
 )
 
 type (
-	Claims struct {
-		Username string `json:"username"`
-		jwt.RegisteredClaims
-	}
-
 	contextKey int
 )
 
 var (
-	jwtKey         = []byte(secretKey)
 	expirationTime = time.Now().Add(60 * time.Minute)
 )
 
 const (
-	registerPath                    = "/api/user/register"
-	loginPath                       = "/api/user/login"
-	contextUserID        contextKey = iota
-	cookieDuration                  = 65 * time.Minute
-	refreshTimeForCookie            = 60 * time.Second
-	secretKey                       = "my_secret_key"
-	tokenString                     = "token"
-	fullPath                        = "/"
-	loginNotFound                   = "login not found"
+	registerPath              = "/api/user/register"
+	loginPath                 = "/api/user/login"
+	contextUserID  contextKey = iota
+	cookieDuration            = 65 * time.Minute
+	secretKey                 = "my_secret_key"
+	tokenString               = "token"
+	fullPath                  = "/"
+	loginNotFound             = "login not found"
 )
 
 func AuthMiddleware(h *Handler) negroni.HandlerFunc {

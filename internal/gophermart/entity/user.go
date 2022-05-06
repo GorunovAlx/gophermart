@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/database"
-	//"github.com/jackc/pgx/v4"
 )
 
 type User struct {

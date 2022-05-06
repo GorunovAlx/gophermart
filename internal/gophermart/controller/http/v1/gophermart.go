@@ -1,24 +1,15 @@
 package v1
 
 import (
-	//"context"
 	"encoding/json"
 	"errors"
-
 	"io/ioutil"
-
-	//"log"
 	"net/http"
-
-	//"runtime"
-
 	"strconv"
 	"time"
 
 	"github.com/theplant/luhn"
 	"golang.org/x/crypto/bcrypt"
-
-	//"golang.org/x/sync/errgroup"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	"github.com/jackc/pgx/v4"
@@ -74,7 +65,7 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	expiration := time.Now().Add(cookieDuration)
 	cookie := http.Cookie{
-		Name:    "token",
+		Name:    tokenString,
 		Value:   userIDToken,
 		Path:    "/",
 		Expires: expiration,
@@ -120,7 +111,7 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	expiration := time.Now().Add(cookieDuration)
 	cookie := http.Cookie{
-		Name:    "token",
+		Name:    tokenString,
 		Value:   userIDToken,
 		Path:    "/",
 		Expires: expiration,
@@ -176,38 +167,6 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	/*
-		jobCh := make(chan *order.OrderJob)
-		g, _ := errgroup.WithContext(context.Background())
-
-		for i := 0; i < runtime.NumCPU(); i++ {
-			g.Go(func() error {
-				for job := range jobCh {
-					if err = h.Services.Loyalty.UpdateOrder(job); err != nil {
-						return err
-					}
-				}
-				return nil
-			})
-		}
-
-		job := &order.OrderJob{
-			Number: string(b),
-			ID:     oID,
-			UserID: userID,
-			Status: statusNewValue,
-		}
-		jobCh <- job
-
-		go func() {
-			if err := g.Wait(); err != nil {
-				log.Println(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}()
-	*/
 
 	w.WriteHeader(http.StatusAccepted)
 }

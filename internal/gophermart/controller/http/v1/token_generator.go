@@ -48,13 +48,3 @@ func AuthUserIDToken(userIDToken string) (bool, error) {
 
 	return true, nil
 }
-
-//func GetUserID(userIDToken string) (uint32, error) {
-//	data, err := hex.DecodeString(userIDToken)
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	id := binary.BigEndian.Uint32(data[:4])
-//	return id, nil
-//}
