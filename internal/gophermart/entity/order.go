@@ -39,9 +39,9 @@ type OrderRepository interface {
 func (os OrderStorage) Add(userID int, accrual float32, status, number string) (int, error) {
 	insertStatement := `
 	INSERT INTO orders (user_id, number, status, accrual, uploaded_at)
-	VALUES ($1, $2, $3, $4, $5) RETURNING id;`
+	VALUES ($1, $2, $3, $4, $5) RETURNING user_id;`
 
-	var orderID int
+	var id int
 	err := os.S.PGpool.QueryRow(
 		context.Background(),
 		insertStatement,
@@ -50,12 +50,12 @@ func (os OrderStorage) Add(userID int, accrual float32, status, number string) (
 		status,
 		accrual,
 		time.Now().Format(time.RFC3339),
-	).Scan(&orderID)
+	).Scan(&id)
 	if err != nil {
 		return -1, err
 	}
 
-	return orderID, nil
+	return id, nil
 }
 
 func (os OrderStorage) GetOrders(userID int) ([]Order, error) {

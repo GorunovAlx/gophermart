@@ -200,18 +200,18 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := h.GetUserID(r)
-	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
+	id, err := h.Orders.Add(userID, 0, statusNewValue, string(b))
+	if id == userID {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	if id != -1 && id != userID {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(err.Error()))
+		return
+	}
 	if err != nil {
-		if errors.Is(err, entity.ErrOrderAlreadyRegisteredByUser) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		if errors.Is(err, entity.ErrOrderAlreadyRegisteredByOtherUser) {
-			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte(err.Error()))
-			return
-		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
