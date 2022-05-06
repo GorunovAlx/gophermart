@@ -200,19 +200,25 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := h.GetUserID(r)
-	orderUserID := h.Orders.GetOrderUserIDByNumber(string(b))
-	if orderUserID != -1 {
-		if orderUserID == userID {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		if orderUserID != userID {
-			w.WriteHeader(http.StatusConflict)
-			return
-		}
+	order, err := h.Orders.GetOrderByNumber(string(b))
+	if err != nil && err != pgx.ErrNoRows {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if order.ID != 0 && order.UserID == userID {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if order.ID != 0 && order.UserID != userID {
+		w.WriteHeader(http.StatusConflict)
+		return
 	}
 
-	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
+	orderID, err := h.Orders.Add(userID, 0, statusNewValue, string(b))
+	if orderID == -1 || err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	/*
 		jobCh := make(chan *order.OrderJob)
@@ -261,8 +267,6 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	//sort.Sort(order.ByUploadedAt(res))
 
 	var orders []OrderResponse
 	for _, order := range res {
@@ -363,8 +367,6 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	//sort.Sort(withdraw.ByUploadedAt(res))
 
 	var withdrawals []WithdrawResponse
 	for _, withdraw := range res {

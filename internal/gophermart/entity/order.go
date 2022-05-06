@@ -31,7 +31,7 @@ type OrderRepository interface {
 	Add(userID int, accrual float32, status, number string) (int, error)
 	GetOrders(userID int) ([]Order, error)
 	GetOrdersNotProcessed(userID int) ([]Order, error)
-	GetOrderUserIDByNumber(orderNumber string) int
+	GetOrderByNumber(number string) (Order, error)
 	Update(status string, accrual float32, number string) error
 }
 
@@ -128,18 +128,18 @@ func (os OrderStorage) GetOrdersNotProcessed(userID int) ([]Order, error) {
 	return result, nil
 }
 
-func (os OrderStorage) GetOrderUserIDByNumber(orderNumber string) int {
-	var userID int
+func (os OrderStorage) GetOrderByNumber(number string) (Order, error) {
+	var order Order
 	err := os.S.PGpool.QueryRow(
 		context.Background(),
-		"select user_id from orders where number=$1",
-		orderNumber,
-	).Scan(&userID)
+		"select id, user_id, number, status, accrual, uploaded_at from orders where number=$1",
+		number,
+	).Scan(&order.ID, &order.UserID, &order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
 	if err != nil {
-		return -1
+		return Order{}, err
 	}
 
-	return userID
+	return order, nil
 }
 
 func (os OrderStorage) Update(status string, accrual float32, number string) error {
