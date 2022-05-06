@@ -201,17 +201,17 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 	userID := h.GetUserID(r)
 	orderUserID := h.Orders.GetOrderUserIDByNumber(string(b))
-	if orderUserID != -1 && orderUserID == userID {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if orderUserID != -1 && orderUserID != userID {
-		w.WriteHeader(http.StatusConflict)
-		return
-	}
 
-	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
+	orderID, err := h.Orders.Add(userID, 0, statusNewValue, string(b))
 	if err != nil {
+		if orderID != -1 && orderUserID == userID {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if orderID != -1 && orderUserID != userID {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
