@@ -14,7 +14,6 @@ var (
 )
 
 type AccrualOrder struct {
-	OrderID int
 	Number  string  `json:"order"`
 	Status  string  `json:"status"`
 	Accrual float32 `json:"accrual,omitempty"`

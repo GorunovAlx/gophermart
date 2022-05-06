@@ -1,37 +1,40 @@
 package v1
 
 import (
+	"github.com/GorunovAlx/gophermart/internal/gophermart/accrual"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
 type Handler struct {
-	Negroni  *negroni.Negroni
-	Router   *mux.Router
-	Services *ServiceShelf
+	Negroni     *negroni.Negroni
+	Router      *mux.Router
+	Users       entity.UserRepository
+	Orders      entity.OrderRepository
+	Withdrawals entity.WithdrawRepository
+	Accruals    *accrual.AccrualService
 }
 
-func NewHandler(s *ServiceShelf) *Handler {
+func NewHandler(u entity.UserRepository, o entity.OrderRepository, w entity.WithdrawRepository, a *accrual.AccrualService) *Handler {
 	r := mux.NewRouter()
 	n := negroni.New()
 
-	n.Use(negroni.NewRecovery())
-	n.Use(negroni.NewLogger())
-	n.UseFunc(AuthMiddleware(s.Users))
-	n.UseFunc(UpdateOrdersMiddleware(s.Loyalty))
-	n.UseHandler(r)
-
 	h := &Handler{
-		Negroni:  n,
-		Router:   r,
-		Services: s,
+		Negroni:     n,
+		Router:      r,
+		Users:       u,
+		Orders:      o,
+		Withdrawals: w,
+		Accruals:    a,
 	}
 
-	return h
-}
+	n.Use(negroni.NewRecovery())
+	n.Use(negroni.NewLogger())
+	n.UseFunc(AuthMiddleware(u))
+	n.UseFunc(UpdateOrdersMiddleware(h))
+	n.UseHandler(r)
 
-func Initialize(s *ServiceShelf) *Handler {
-	h := NewHandler(s)
 	h.initializeRoutes()
 
 	return h

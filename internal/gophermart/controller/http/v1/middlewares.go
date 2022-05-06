@@ -2,14 +2,11 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"time"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
-	loyaltyService "github.com/GorunovAlx/gophermart/internal/gophermart/services/loyalty"
-	userService "github.com/GorunovAlx/gophermart/internal/gophermart/services/user"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/urfave/negroni"
 )
@@ -31,7 +28,7 @@ var (
 const (
 	registerPath                    = "/api/user/register"
 	loginPath                       = "/api/user/login"
-	contextToken         contextKey = iota
+	contextUserID        contextKey = iota
 	cookieDuration                  = 5 * time.Minute
 	refreshTimeForCookie            = 60 * time.Second
 	secretKey                       = "my_secret_key"
@@ -40,13 +37,13 @@ const (
 	loginNotFound                   = "login not found"
 )
 
-func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
+func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-
 		if r.RequestURI == registerPath || r.RequestURI == loginPath {
 			next.ServeHTTP(w, r)
 			return
 		}
+
 		c, err := r.Cookie(tokenString)
 		if err != nil {
 			if err == http.ErrNoCookie {
@@ -76,57 +73,31 @@ func AuthMiddleware(us *userService.UserService) negroni.HandlerFunc {
 			return
 		}
 
-		newCtx := context.WithValue(r.Context(), contextToken, tknStr)
+		id := us.GetIDByToken(tknStr)
+		if id == -1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		newCtx := context.WithValue(r.Context(), contextUserID, id)
 		next.ServeHTTP(w, r.WithContext(newCtx))
 	}
 }
 
-func (h *Handler) setToken(w http.ResponseWriter, r *http.Request) {
-	login := r.Context().Value(contextLogin).(string)
-	// Create the JWT claims, which includes the username and expiry time
-	claims := &Claims{
-		Username: login,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// Create the JWT string
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err = h.Services.Users.SetAuthToken(login, tokenString)
-	if err != nil {
-		if errors.Is(err, user.ErrUserNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(err.Error()))
-			return
-		}
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   tokenString,
-		Path:    "/",
-		Expires: expirationTime,
-	})
-}
-
-func UpdateOrdersMiddleware(ls *loyaltyService.LoyaltySystem) negroni.HandlerFunc {
+func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		if r.RequestURI == registerPath || r.RequestURI == loginPath {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		userID, err := getUserID(ls, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		userID := r.Context().Value(contextUserID).(int)
+		if userID == -1 {
+			http.Error(w, entity.ErrUserNotFound.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		orders, err := ls.OrderService.GetOrdersNotProcessed(userID)
+		orders, err := h.Orders.GetOrdersNotProcessed(userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -139,7 +110,8 @@ func UpdateOrdersMiddleware(ls *loyaltyService.LoyaltySystem) negroni.HandlerFun
 
 		go func() {
 			for _, order := range orders {
-				err = ls.Update(order.GetNumber(), order.GetID(), userID)
+				accrualOrder, err := h.Accruals.GetAccrualOrder(order.Number)
+				err = h.Orders.Update(accrualOrder, userID)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return

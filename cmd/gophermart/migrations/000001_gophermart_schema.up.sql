@@ -2,9 +2,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "id" BIGSERIAL PRIMARY KEY,
   "login" varchar UNIQUE,
   "password" varchar NOT NULL,
-  "authtoken" varchar,
-  "current" numeric(7,2),
-  "withdrawn" numeric(7,2)
+  "authtoken" varchar
 );
 
 CREATE TABLE IF NOT EXISTS "orders" (

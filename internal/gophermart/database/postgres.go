@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	"github.com/GorunovAlx/gophermart/config"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -28,7 +28,7 @@ func InitStorage(cfg *config.Config) *Storage {
 
 func makeMigration(uri string) {
 	m, err := migrate.New(
-		"file://internal/gophermart/database/migrations",
+		"file://migrations",
 		uri)
 	if err != nil {
 		panic(err)

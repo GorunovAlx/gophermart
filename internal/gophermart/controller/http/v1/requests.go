@@ -5,7 +5,7 @@ type UserRequest struct {
 	Password string `json:"password"`
 }
 
-type BalanceRequest struct {
+type WithdrawRequest struct {
 	OrderNumber string  `json:"order"`
 	Sum         float32 `json:"sum"`
 }

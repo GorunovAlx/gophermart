@@ -4,25 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
 	"io/ioutil"
 
 	//"log"
 	"net/http"
 
 	//"runtime"
-	"sort"
+
 	"strconv"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/theplant/luhn"
 	"golang.org/x/crypto/bcrypt"
 
 	//"golang.org/x/sync/errgroup"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/order"
-	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/user"
-	"github.com/GorunovAlx/gophermart/internal/gophermart/domain/withdraw"
-	loyaltyService "github.com/GorunovAlx/gophermart/internal/gophermart/services/loyalty"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
+	"github.com/jackc/pgx/v4"
 )
 
 var (
@@ -40,14 +40,25 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := h.Users.GetUserByLogin(u.Login)
+	if user.ID != 0 {
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	if err != nil && err != pgx.ErrNoRows {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 8)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = h.Services.Users.AddUser(u.Login, string(hashedPassword))
+
+	err = h.Users.Add(u.Login, string(hashedPassword))
 	if err != nil {
-		if errors.Is(err, user.ErrFailedToAddUser) {
+		if errors.Is(err, entity.ErrFailedToAddUser) {
 			w.WriteHeader(http.StatusConflict)
 			w.Write([]byte(err.Error()))
 			return
@@ -69,13 +80,13 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userValue := h.Services.Users.GetUserByLogin(u.Login)
-	if (user.User{}) == userValue {
+	user, err := h.Users.GetUserByLogin(u.Login)
+	if err == pgx.ErrNoRows {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("wrong credentials"))
 		return
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(userValue.GetPassword()), []byte(u.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password)); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("wrong credentials"))
 		return
@@ -84,6 +95,41 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 	newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
 	h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) setToken(w http.ResponseWriter, r *http.Request) {
+	login := r.Context().Value(contextLogin).(string)
+	// Create the JWT claims, which includes the username and expiry time
+	claims := &Claims{
+		Username: login,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	// Create the JWT string
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = h.Users.SetAuthToken(login, tokenString)
+	if err != nil {
+		if errors.Is(err, entity.ErrUserNotFound) {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Value:   tokenString,
+		Path:    "/",
+		Expires: expirationTime,
+	})
 }
 
 func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,20 +149,15 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := getUserID(h.Services.Loyalty, r)
+	userID := r.Context().Value(contextUserID).(int)
+	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_, err = h.Services.Orders.RegisterOrder(string(b), userID)
-	if err != nil {
-		if errors.Is(err, order.ErrOrderAlreadyRegisteredByUser) {
+		if errors.Is(err, entity.ErrOrderAlreadyRegisteredByUser) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(err.Error()))
 			return
 		}
-		if errors.Is(err, order.ErrOrderAlreadyRegisteredByOtherUser) {
+		if errors.Is(err, entity.ErrOrderAlreadyRegisteredByOtherUser) {
 			w.WriteHeader(http.StatusConflict)
 			w.Write([]byte(err.Error()))
 			return
@@ -161,13 +202,8 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(h.Services.Loyalty, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	res, err := h.Services.Orders.GetOrdersByUserID(userID)
+	userID := r.Context().Value(contextUserID).(int)
+	res, err := h.Orders.GetOrders(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,15 +214,15 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sort.Sort(order.ByUploadedAt(res))
+	//sort.Sort(order.ByUploadedAt(res))
 
 	var orders []OrderResponse
 	for _, order := range res {
 		or := OrderResponse{
-			Number:     order.GetNumber(),
-			Status:     order.GetStatus(),
-			Accrual:    order.GetAccrual(),
-			UploadedAt: order.GetUploadedAt().Format(time.RFC3339),
+			Number:     order.Number,
+			Status:     order.Status,
+			Accrual:    order.Accrual,
+			UploadedAt: order.UploadedAt.Format(time.RFC3339),
 		}
 		orders = append(orders, or)
 	}
@@ -203,21 +239,22 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(h.Services.Loyalty, r)
+	userID := r.Context().Value(contextUserID).(int)
+	current, err := h.Users.GetBalance(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	u, err := h.Services.Users.GetUser(userID)
+	withdrawn, err := h.Withdrawals.GetUserSumWithdrawn(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	balance := BalanceResponse{
-		Current:   u.GetCurrentBalance(),
-		Withdrawn: u.GetWithdrawnBalance(),
+		Current:   current,
+		Withdrawn: withdrawn,
 	}
 	resp, err := json.MarshalIndent(balance, "", " ")
 	if err != nil {
@@ -231,13 +268,13 @@ func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
-	var b BalanceRequest
-	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+	var withdraw WithdrawRequest
+	if err := json.NewDecoder(r.Body).Decode(&withdraw); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	orderNumber, err := strconv.Atoi(string(b.OrderNumber))
+	orderNumber, err := strconv.Atoi(withdraw.OrderNumber)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -247,19 +284,19 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := getUserID(h.Services.Loyalty, r)
+	userID := r.Context().Value(contextUserID).(int)
+	current, err := h.Users.GetBalance(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if current < withdraw.Sum {
+		w.WriteHeader(http.StatusPaymentRequired)
+		return
+	}
 
-	err = h.Services.Loyalty.RegisterWithdraw(b.OrderNumber, b.Sum, userID)
+	err = h.Withdrawals.Add(userID, withdraw.OrderNumber, withdraw.Sum)
 	if err != nil {
-		if errors.Is(err, user.ErrNotEnoughFunds) {
-			w.WriteHeader(http.StatusPaymentRequired)
-			w.Write([]byte(err.Error()))
-			return
-		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -268,26 +305,25 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(h.Services.Loyalty, r)
+	userID := r.Context().Value(contextUserID).(int)
+	res, err := h.Withdrawals.GetWithdrawals(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	res := h.Services.Loyalty.WithdrawService.GetWithdrawals(userID)
 	if len(res) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	sort.Sort(withdraw.ByUploadedAt(res))
+	//sort.Sort(withdraw.ByUploadedAt(res))
 
 	var withdrawals []WithdrawResponse
 	for _, withdraw := range res {
 		wr := WithdrawResponse{
-			Order:       withdraw.GetOrder(),
-			Sum:         withdraw.GetSum(),
-			ProcessedAt: withdraw.GetProcessedAt().Format(time.RFC3339),
+			Order:       withdraw.Order,
+			Sum:         withdraw.Sum,
+			ProcessedAt: withdraw.ProcessedAt.Format(time.RFC3339),
 		}
 		withdrawals = append(withdrawals, wr)
 	}
@@ -301,9 +337,4 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
-}
-
-func getUserID(ls *loyaltyService.LoyaltySystem, r *http.Request) (int, error) {
-	token := r.Context().Value(contextToken).(string)
-	return ls.UserService.GetUserIDByToken(token)
 }
