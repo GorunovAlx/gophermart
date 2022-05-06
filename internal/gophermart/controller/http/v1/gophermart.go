@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"context"
+	//"context"
 	"encoding/json"
 	"errors"
 
@@ -68,8 +68,33 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
-	h.setToken(w, r.WithContext(newCtx))
+	userIDToken, err := GenerateUserIDToken()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	expiration := time.Now().Add(cookieDuration)
+	cookie := http.Cookie{
+		Name:    "token",
+		Value:   userIDToken,
+		Path:    "/",
+		Expires: expiration,
+	}
+
+	err = h.Users.SetAuthToken(u.Login, userIDToken)
+	if err != nil {
+		if errors.Is(err, entity.ErrUserNotFound) {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	http.SetCookie(w, &cookie)
+
+	//newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
+	//h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -92,8 +117,33 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
-	h.setToken(w, r.WithContext(newCtx))
+	userIDToken, err := GenerateUserIDToken()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	expiration := time.Now().Add(cookieDuration)
+	cookie := http.Cookie{
+		Name:    "token",
+		Value:   userIDToken,
+		Path:    "/",
+		Expires: expiration,
+	}
+
+	err = h.Users.SetAuthToken(u.Login, userIDToken)
+	if err != nil {
+		if errors.Is(err, entity.ErrUserNotFound) {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	http.SetCookie(w, &cookie)
+
+	//newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
+	//h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -149,7 +199,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value(contextUserID).(int)
+	userID := h.GetUserID(r)
 	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
 	if err != nil {
 		if errors.Is(err, entity.ErrOrderAlreadyRegisteredByUser) {
@@ -202,7 +252,7 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(contextUserID).(int)
+	userID := h.GetUserID(r)
 	res, err := h.Orders.GetOrders(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -239,7 +289,7 @@ func (h *Handler) getOrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getCurrentBalance(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(contextUserID).(int)
+	userID := h.GetUserID(r)
 	current, err := h.Users.GetBalance(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -284,7 +334,7 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value(contextUserID).(int)
+	userID := h.GetUserID(r)
 	current, err := h.Users.GetBalance(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -305,7 +355,7 @@ func (h *Handler) registerWithdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(contextUserID).(int)
+	userID := h.GetUserID(r)
 	res, err := h.Withdrawals.GetWithdrawals(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -337,4 +387,9 @@ func (h *Handler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func (h *Handler) GetUserID(r *http.Request) int {
+	token := r.Context().Value(contextUserID).(string)
+	return h.Users.GetIDByToken(token)
 }

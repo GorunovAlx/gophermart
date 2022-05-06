@@ -29,7 +29,7 @@ const (
 	registerPath                    = "/api/user/register"
 	loginPath                       = "/api/user/login"
 	contextUserID        contextKey = iota
-	cookieDuration                  = 5 * time.Minute
+	cookieDuration                  = 65 * time.Minute
 	refreshTimeForCookie            = 60 * time.Second
 	secretKey                       = "my_secret_key"
 	tokenString                     = "token"
@@ -39,48 +39,29 @@ const (
 
 func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		if r.RequestURI == registerPath || r.RequestURI == loginPath {
-			next.ServeHTTP(w, r)
-			return
-		}
+		userIDToken := getCookieByName("token", r)
 
-		c, err := r.Cookie(tokenString)
-		if err != nil {
-			if err == http.ErrNoCookie {
-				w.WriteHeader(http.StatusUnauthorized)
+		if len(userIDToken) != 0 {
+			isAuthentic, err := AuthUserIDToken(userIDToken)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+			if isAuthentic {
+				id := us.GetIDByToken(userIDToken)
+				if id == -1 {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
 
-		tknStr := c.Value
-		claims := &Claims{}
-
-		tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
-		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
-				w.WriteHeader(http.StatusUnauthorized)
+				ctx := r.Context()
+				ctx = context.WithValue(ctx, contextUserID, userIDToken)
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		if !tkn.Valid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
 		}
 
-		id := us.GetIDByToken(tknStr)
-		if id == -1 {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		newCtx := context.WithValue(r.Context(), contextUserID, id)
-		next.ServeHTTP(w, r.WithContext(newCtx))
+		next.ServeHTTP(w, r)
 	}
 }
 
@@ -91,7 +72,7 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(contextUserID).(int)
+		userID := h.GetUserID(r)
 		if userID == -1 {
 			http.Error(w, entity.ErrUserNotFound.Error(), http.StatusInternalServerError)
 			return
@@ -121,4 +102,18 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 
 		next.ServeHTTP(w, r)
 	}
+}
+
+func getCookieByName(cName string, r *http.Request) string {
+	receivedCookie := r.Cookies()
+	var value string
+	if len(receivedCookie) != 0 {
+		for _, cookie := range receivedCookie {
+			if cookie.Name == cName {
+				value = cookie.Value
+			}
+		}
+	}
+
+	return value
 }
