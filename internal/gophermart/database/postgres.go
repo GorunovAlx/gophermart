@@ -28,7 +28,7 @@ func InitStorage(cfg *config.Config) *Storage {
 
 func makeMigration(uri string) {
 	m, err := migrate.New(
-		"file://migrations",
+		"file://internal/gophermart/database/migrations",
 		uri)
 	if err != nil {
 		panic(err)
