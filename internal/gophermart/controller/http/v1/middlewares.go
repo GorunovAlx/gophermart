@@ -39,6 +39,11 @@ const (
 
 func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		if r.RequestURI == registerPath || r.RequestURI == loginPath {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		userIDToken := getCookieByName("token", r)
 
 		if len(userIDToken) != 0 {
