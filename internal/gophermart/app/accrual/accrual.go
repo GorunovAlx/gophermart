@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
@@ -34,7 +35,11 @@ func NewAccrualService(address string, o entity.OrderRepository) *AccrualService
 }
 
 func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
-	res, err := http.Get(fmt.Sprintf("%s/api/orders/%s", as.Address, number))
+	parsedURL, err := url.Parse(fmt.Sprintf("%s/api/orders/%s", as.Address, number))
+	if err != nil {
+		return AccrualOrder{}, err
+	}
+	res, err := http.Get(parsedURL.String())
 	if err != nil {
 		return AccrualOrder{}, ErrDataRetrievalError
 	}

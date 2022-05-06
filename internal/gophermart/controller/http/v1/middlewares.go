@@ -81,10 +81,12 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 			return
 		}
 
-		if r.RequestURI == "api/user/orders" && r.Method == "POST" {
-			next.ServeHTTP(w, r)
-			return
-		}
+		/*
+			if r.RequestURI == "api/user/orders" && r.Method == "POST" {
+				next.ServeHTTP(w, r)
+				return
+			}
+		*/
 
 		userID := h.GetUserID(r)
 		if userID == -1 {
