@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/theplant/luhn"
 	"golang.org/x/crypto/bcrypt"
 
@@ -46,23 +45,21 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil && err != pgx.ErrNoRows {
+		h.Logger.Debug("registerUserHandler - Users.GetUserByLogin - err: %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 8)
 	if err != nil {
+		h.Logger.Debug("registerUserHandler - Users.GenerateFromPassword - err: %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = h.Users.Add(u.Login, string(hashedPassword))
 	if err != nil {
-		if errors.Is(err, entity.ErrFailedToAddUser) {
-			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		h.Logger.Debug("registerUserHandler - Users.Add - err: %v", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
@@ -70,6 +67,7 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	userIDToken, err := GenerateUserIDToken()
 	if err != nil {
+		h.Logger.Debug("registerUserHandler - Users.GenerateUserIDToken - err: %v", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -92,9 +90,6 @@ func (h *Handler) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &cookie)
-
-	//newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
-	//h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -141,45 +136,7 @@ func (h *Handler) loginUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &cookie)
-
-	//newCtx := context.WithValue(r.Context(), contextLogin, u.Login)
-	//h.setToken(w, r.WithContext(newCtx))
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) setToken(w http.ResponseWriter, r *http.Request) {
-	login := r.Context().Value(contextLogin).(string)
-	// Create the JWT claims, which includes the username and expiry time
-	claims := &Claims{
-		Username: login,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// Create the JWT string
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err = h.Users.SetAuthToken(login, tokenString)
-	if err != nil {
-		if errors.Is(err, entity.ErrUserNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(err.Error()))
-			return
-		}
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   tokenString,
-		Path:    "/",
-		Expires: expirationTime,
-	})
 }
 
 func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {

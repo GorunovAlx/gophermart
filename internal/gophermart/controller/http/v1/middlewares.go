@@ -38,7 +38,7 @@ const (
 	loginNotFound                   = "login not found"
 )
 
-func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
+func AuthMiddleware(h *Handler) negroni.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		if r.RequestURI == registerPath || r.RequestURI == loginPath {
 			next.ServeHTTP(w, r)
@@ -46,15 +46,17 @@ func AuthMiddleware(us entity.UserRepository) negroni.HandlerFunc {
 		}
 
 		userIDToken := getCookieByName("token", r)
+		h.Logger.Debug("AuthMiddleware - userIDToken: %v", userIDToken)
 
 		if len(userIDToken) != 0 {
 			isAuthentic, err := AuthUserIDToken(userIDToken)
 			if err != nil {
+				h.Logger.Debug("AuthMiddleware - userIDToken: %v", userIDToken)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			if isAuthentic {
-				id := us.GetIDByToken(userIDToken)
+				id := h.Users.GetIDByToken(userIDToken)
 				if id == -1 {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
@@ -81,12 +83,10 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 			return
 		}
 
-		/*
-			if r.RequestURI == "api/user/orders" && r.Method == "POST" {
-				next.ServeHTTP(w, r)
-				return
-			}
-		*/
+		if r.RequestURI == "api/user/orders" && r.Method == "POST" {
+			next.ServeHTTP(w, r)
+			return
+		}
 
 		userID := h.GetUserID(r)
 		if userID == -1 {

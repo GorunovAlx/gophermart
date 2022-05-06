@@ -2,6 +2,7 @@ package v1
 
 import (
 	"github.com/GorunovAlx/gophermart/internal/gophermart/app/accrual"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/app/logger"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
@@ -14,9 +15,10 @@ type Handler struct {
 	Orders      entity.OrderRepository
 	Withdrawals entity.WithdrawRepository
 	Accruals    *accrual.AccrualService
+	Logger      *logger.Logger
 }
 
-func NewHandler(u entity.UserRepository, o entity.OrderRepository, w entity.WithdrawRepository, a *accrual.AccrualService) *Handler {
+func NewHandler(u entity.UserRepository, o entity.OrderRepository, w entity.WithdrawRepository, a *accrual.AccrualService, l *logger.Logger) *Handler {
 	r := mux.NewRouter()
 	n := negroni.New()
 
@@ -27,11 +29,12 @@ func NewHandler(u entity.UserRepository, o entity.OrderRepository, w entity.With
 		Orders:      o,
 		Withdrawals: w,
 		Accruals:    a,
+		Logger:      l,
 	}
 
 	n.Use(negroni.NewRecovery())
 	n.Use(negroni.NewLogger())
-	n.UseFunc(AuthMiddleware(u))
+	n.UseFunc(AuthMiddleware(h))
 	n.UseFunc(UpdateOrdersMiddleware(h))
 	n.UseHandler(r)
 
