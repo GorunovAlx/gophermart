@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/GorunovAlx/gophermart/internal/gophermart/accrual"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/app/accrual"
 	//"github.com/GorunovAlx/gophermart/internal/gophermart/app/logger"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/config"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/database"
@@ -19,7 +19,7 @@ func Run(cfg *config.Config) {
 	us := entity.UserStorage{S: *st}
 	os := entity.OrderStorage{S: *st}
 	ws := entity.WithdrawStorage{S: *st}
-	as := accrual.NewAccrualService(cfg.AccrualAddress)
+	as := accrual.NewAccrualService(cfg.AccrualAddress, os)
 
 	router := v1.NewHandler(us, os, ws, as)
 

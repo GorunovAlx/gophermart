@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/GorunovAlx/gophermart/internal/gophermart/accrual"
+	"github.com/GorunovAlx/gophermart/internal/gophermart/app/accrual"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"

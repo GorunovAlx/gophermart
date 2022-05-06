@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/GorunovAlx/gophermart/internal/gophermart/accrual"
 	"github.com/GorunovAlx/gophermart/internal/gophermart/database"
 )
 
@@ -33,7 +32,7 @@ type OrderRepository interface {
 	GetOrders(userID int) ([]Order, error)
 	GetOrdersNotProcessed(userID int) ([]Order, error)
 	GetOrderUserIDByNumber(orderNumber string) int
-	Update(order accrual.AccrualOrder, userID int) error
+	Update(status string, accrual float32, number string) error
 }
 
 func (os OrderStorage) Add(userID int, accrual float32, status, number string) (int, error) {
@@ -143,16 +142,16 @@ func (os OrderStorage) GetOrderUserIDByNumber(orderNumber string) int {
 	return userID
 }
 
-func (os OrderStorage) Update(order accrual.AccrualOrder, userID int) error {
+func (os OrderStorage) Update(status string, accrual float32, number string) error {
 	sqlStmt := `
-	update orders set status = $1, accrual = $2 where user_id = $3;`
+	update orders set status = $1, accrual = $2 where number = $3;`
 
 	_, err := os.S.PGpool.Exec(
 		context.Background(),
 		sqlStmt,
-		order.Status,
-		order.Accrual,
-		userID,
+		status,
+		accrual,
+		number,
 	)
 
 	if err != nil {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/GorunovAlx/gophermart/internal/gophermart/entity"
 )
 
 var (
@@ -21,11 +23,13 @@ type AccrualOrder struct {
 
 type AccrualService struct {
 	Address string
+	Os      entity.OrderRepository
 }
 
-func NewAccrualService(address string) *AccrualService {
+func NewAccrualService(address string, o entity.OrderRepository) *AccrualService {
 	return &AccrualService{
 		Address: address,
+		Os:      o,
 	}
 }
 
@@ -36,7 +40,7 @@ func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
 		return AccrualOrder{}, ErrDataRetrievalError
 	}
 	if res.StatusCode != http.StatusOK {
-		return AccrualOrder{}, ErrStatusNotOk
+		return AccrualOrder{}, nil
 	}
 
 	var order AccrualOrder
@@ -46,4 +50,18 @@ func (as *AccrualService) GetAccrualOrder(number string) (AccrualOrder, error) {
 	}
 
 	return order, nil
+}
+
+func (as *AccrualService) UpdateAccrualOrder(number string) error {
+	order, err := as.GetAccrualOrder(number)
+	if err != nil {
+		return err
+	}
+
+	err = as.Os.Update(order.Status, order.Accrual, order.Number)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

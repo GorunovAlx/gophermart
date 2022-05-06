@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"time"
@@ -104,15 +105,9 @@ func UpdateOrdersMiddleware(h *Handler) negroni.HandlerFunc {
 
 		go func() {
 			for _, order := range orders {
-				accrualOrder, err := h.Accruals.GetAccrualOrder(order.Number)
+				err := h.Accruals.UpdateAccrualOrder(order.Number)
 				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				err = h.Orders.Update(accrualOrder, userID)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
+					log.Printf(err.Error())
 				}
 			}
 		}()
