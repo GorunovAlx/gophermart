@@ -201,20 +201,18 @@ func (h *Handler) registerOrderHandler(w http.ResponseWriter, r *http.Request) {
 
 	userID := h.GetUserID(r)
 	orderUserID := h.Orders.GetOrderUserIDByNumber(string(b))
-
-	orderID, err := h.Orders.Add(userID, 0, statusNewValue, string(b))
-	if err != nil {
-		if orderID != -1 && orderUserID == userID {
+	if orderUserID != -1 {
+		if orderUserID == userID {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if orderID != -1 && orderUserID != userID {
+		if orderUserID != userID {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
+
+	_, err = h.Orders.Add(userID, 0, statusNewValue, string(b))
 
 	/*
 		jobCh := make(chan *order.OrderJob)
